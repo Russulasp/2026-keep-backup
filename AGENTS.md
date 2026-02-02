@@ -69,6 +69,7 @@
 - まずはスモーク（起動できる/出力ができる）を最優先
 - E2Eは手動トリガー前提（最初はローカルのみでOK）
 - UI依存のため、テストは「壊れたときに原因が追える」ことを重視する
+- CI を導入する場合は、依存定義と lock の不整合を検知して失敗させる
 
 —
 
@@ -77,6 +78,8 @@
 - 依存を変えたらlockを更新し、整合性確認を必須にする
 - 採用スタックが確定したら、以下のどちらかに寄せる（両立させない）
   - Python系：`pyproject.toml` + lock（例：uv.lock）
+    - 依存追加/削除/更新は `uv add` / `uv remove` / `uv lock` に寄せる
+    - `pyproject.toml` を手で編集した場合は必ず `uv lock` を実行する
   - Node系：`package.json` + lock（package-lock / pnpm-lock / yarn.lock のいずれか）
 
 > どの言語/ツールに寄せるかは判断基準の話なので、確定時は `MANIFEST.md` も更新する。
@@ -94,3 +97,16 @@
 - 縦切りの本文は `docs/vertical-slice-*.md` を正とする
 - 重要な判断（例：ログイン方針、対象範囲、保持方針）が変わったら `MANIFEST.md` を更新する
 - 実行手順やコマンドが変わったら `AGENTS.md` と `docs/runbook.md`（導入するなら）を更新する
+
+—
+
+## 11. スクリプト運用（必要になったら段階導入）
+- setup/maintenance は「必要になった時点で」最小構成から導入する
+  - setup: 初回や起動直後に必要な準備（依存導入、必要ファイル生成など）
+  - maintenance: キャッシュ整理や更新、点検などの継続整備
+- 秘密情報が必要な処理は setup に寄せ、短命の受け渡しで完結させる
+
+—
+
+## 12. リポジトリに含めるもの（汎用）
+- `.editorconfig` / `LICENSE` / `README` / `.gitignore` / `.env.example` はなるべく含める
