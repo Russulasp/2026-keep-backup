@@ -1,0 +1,9 @@
+# Output artifacts
+backups/
+logs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
