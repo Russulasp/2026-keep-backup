@@ -58,12 +58,22 @@ def main() -> int:
     finally:
         end = datetime.now()
         duration = (end - start).total_seconds()
+        summary = (
+            "summary "
+            f"success={success} "
+            f"notes_count={len(notes)} "
+            f"duration_seconds={duration:.2f} "
+            f"output={paths.backup_file}"
+        )
         append_log(paths.log_file, f"run finished (success={success})")
         append_log(paths.log_file, f"duration_seconds={duration:.2f}")
         append_log(paths.log_file, f"notes_count={len(notes)}")
         append_log(paths.log_file, f"output={paths.backup_file}")
         if error_message:
             append_log(paths.log_file, f"error={error_message}")
+        print(summary)
+        if error_message:
+            print(f"error={error_message}")
 
     return 0 if success else 1
 
