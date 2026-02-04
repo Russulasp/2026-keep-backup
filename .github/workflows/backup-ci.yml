@@ -1,0 +1,71 @@
+name: keep-backup-ci
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  run-backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install package
+        run: python -m pip install -e .
+
+      - name: Run backup and capture stdout
+        id: run_backup
+        run: |
+          set -uo pipefail
+          python -m keep_backup.app | tee run_output.txt
+          exit_code=${PIPESTATUS[0]}
+          summary_line=$(grep '^summary ' run_output.txt | tail -n1 || true)
+          success=$(echo "$summary_line" | sed -n 's/.*success=\([^ ]*\).*/\1/p')
+          notes_count=$(echo "$summary_line" | sed -n 's/.*notes_count=\([^ ]*\).*/\1/p')
+          duration_seconds=$(echo "$summary_line" | sed -n 's/.*duration_seconds=\([^ ]*\).*/\1/p')
+          output_path=$(echo "$summary_line" | sed -n 's/.*output=\(.*\)/\1/p')
+          error_line=$(grep '^error=' run_output.txt | tail -n1 || true)
+
+          echo "stdout<<'EOF'" >> "$GITHUB_OUTPUT"
+          cat run_output.txt >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "success=${success}" >> "$GITHUB_OUTPUT"
+          echo "notes_count=${notes_count}" >> "$GITHUB_OUTPUT"
+          echo "duration_seconds=${duration_seconds}" >> "$GITHUB_OUTPUT"
+          echo "output=${output_path}" >> "$GITHUB_OUTPUT"
+          echo "error=${error_line}" >> "$GITHUB_OUTPUT"
+
+          exit "$exit_code"
+
+      - name: Send notification email
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: >-
+            keep-backup CI result: ${{ steps.run_backup.outputs.success || 'unknown' }}
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: keep-backup CI <${{ secrets.SMTP_USERNAME }}>
+          body: |
+            keep-backup CI summary
+
+            success: ${{ steps.run_backup.outputs.success || 'unknown' }}
+            notes_count: ${{ steps.run_backup.outputs.notes_count || 'n/a' }}
+            duration_seconds: ${{ steps.run_backup.outputs.duration_seconds || 'n/a' }}
+            output: ${{ steps.run_backup.outputs.output || 'n/a' }}
+            error: ${{ steps.run_backup.outputs.error || 'none' }}
+
+            stdout:
+            ${{ steps.run_backup.outputs.stdout || 'no stdout captured' }}
