@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import argparse
 import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+
 
 
 @dataclass
@@ -40,7 +42,60 @@ def write_backup(backup_file: Path, now: datetime, notes: list[dict[str, str]]) 
         handle.write("\n")
 
 
-def main() -> int:
+def run_playwright_smoke(log_file: Path) -> int:
+    start = datetime.now()
+    append_log(log_file, "playwright smoke started")
+
+    success = False
+    notes_count = 0
+    error_message = None
+    output = "-"
+
+    try:
+        try:
+            from playwright.sync_api import sync_playwright
+        except ModuleNotFoundError as exc:
+            raise RuntimeError(
+                "playwright is not installed. Install dependencies and run `playwright install chromium`."
+            ) from exc
+
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=True)
+            page = browser.new_page()
+            response = page.goto("https://keep.google.com/", wait_until="domcontentloaded")
+            page.wait_for_timeout(1000)
+            title = page.title()
+            status = response.status if response else "unknown"
+            append_log(log_file, f"playwright smoke page_title={title}")
+            append_log(log_file, f"playwright smoke http_status={status}")
+            browser.close()
+        success = True
+    except Exception as exc:  # noqa: BLE001
+        error_message = str(exc)
+    finally:
+        end = datetime.now()
+        duration = (end - start).total_seconds()
+        summary = (
+            "summary "
+            f"success={success} "
+            f"notes_count={notes_count} "
+            f"duration_seconds={duration:.2f} "
+            f"output={output}"
+        )
+        append_log(log_file, f"playwright smoke finished (success={success})")
+        append_log(log_file, f"duration_seconds={duration:.2f}")
+        append_log(log_file, f"notes_count={notes_count}")
+        append_log(log_file, f"output={output}")
+        if error_message:
+            append_log(log_file, f"error={error_message}")
+        print(summary)
+        if error_message:
+            print(f"error={error_message}")
+
+    return 0 if success else 1
+
+
+def run_backup() -> int:
     start = datetime.now()
     paths = build_paths(start)
     append_log(paths.log_file, "run started")
@@ -76,6 +131,24 @@ def main() -> int:
             print(f"error={error_message}")
 
     return 0 if success else 1
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--mode",
+        choices=["backup", "smoke-playwright"],
+        default="backup",
+        help="Execution mode. Use smoke-playwright for no-profile browser startup check.",
+    )
+    args = parser.parse_args()
+
+    now = datetime.now()
+    paths = build_paths(now)
+
+    if args.mode == "smoke-playwright":
+        return run_playwright_smoke(paths.log_file)
+    return run_backup()
 
 
 if __name__ == "__main__":
