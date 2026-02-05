@@ -34,9 +34,12 @@ jobs:
           output_path=$(echo "$summary_line" | sed -n 's/.*output=\(.*\)/\1/p')
           error_line=$(grep '^error=' run_output.txt | tail -n1 || true)
 
-          echo "stdout<<'EOF'" >> "$GITHUB_OUTPUT"
-          cat run_output.txt >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          delimiter="EOF_$(date +%s)_$RANDOM"
+          {
+            echo "stdout<<${delimiter}"
+            cat run_output.txt
+            echo "${delimiter}"
+          } >> "$GITHUB_OUTPUT"
           echo "success=${success}" >> "$GITHUB_OUTPUT"
           echo "notes_count=${notes_count}" >> "$GITHUB_OUTPUT"
           echo "duration_seconds=${duration_seconds}" >> "$GITHUB_OUTPUT"
