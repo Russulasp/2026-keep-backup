@@ -1,0 +1,83 @@
+name: no-profile-smoke-pr
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  smoke-no-profile:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Lock consistency check
+        run: uv lock --check
+
+      - name: Sync dependencies from lock
+        run: uv sync --locked
+
+      - name: Install Playwright Chromium
+        run: uv run --with playwright playwright install --with-deps chromium
+
+      - name: Run no-profile Playwright smoke
+        id: smoke
+        run: |
+          set -euo pipefail
+
+          uv run --with playwright python -m keep_backup.app --mode smoke-playwright | tee run_output.txt
+          exit_code=${PIPESTATUS[0]}
+
+          summary_line=$(grep '^summary ' run_output.txt | tail -n1 || true)
+          if [ -z "$summary_line" ]; then
+            echo "summary line not found in stdout"
+            exit 1
+          fi
+
+          success=$(echo "$summary_line" | sed -n 's/.*success=\([^ ]*\).*/\1/p')
+          notes_count=$(echo "$summary_line" | sed -n 's/.*notes_count=\([^ ]*\).*/\1/p')
+          duration_seconds=$(echo "$summary_line" | sed -n 's/.*duration_seconds=\([^ ]*\).*/\1/p')
+          output_path=$(echo "$summary_line" | sed -n 's/.*output=\(.*\)/\1/p')
+          error_line=$(grep '^error=' run_output.txt | tail -n1 || true)
+
+          if [ "$exit_code" -ne 0 ]; then
+            echo "smoke command failed with exit code $exit_code"
+            exit "$exit_code"
+          fi
+
+          if [ "$success" != "true" ]; then
+            echo "smoke summary reported success=$success"
+            if [ -n "$error_line" ]; then
+              echo "$error_line"
+            fi
+            exit 1
+          fi
+
+          if [ -n "$error_line" ]; then
+            echo "unexpected error line emitted"
+            echo "$error_line"
+            exit 1
+          fi
+
+          echo "summary: $summary_line"
+          echo "notes_count: ${notes_count:-unknown}"
+          echo "duration_seconds: ${duration_seconds:-unknown}"
+          echo "output: ${output_path:-unknown}"
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-logs
+          path: logs/run_*.log
+          if-no-files-found: warn
