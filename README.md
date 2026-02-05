@@ -2,6 +2,15 @@
 
 Minimal starter for backing up Google Keep notes.
 
+## Smoke run (no profile)
+Run a Playwright startup smoke check without any login profile:
+
+```bash
+uv run python -m keep_backup.app --mode smoke-playwright
+```
+
+This mode verifies Chromium can launch and reach Google Keep, then prints the same CI-friendly summary lines.
+
 ## CI summary and notifications
 The app prints a minimal stdout summary for CI consumption:
 
