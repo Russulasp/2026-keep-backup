@@ -1,11 +1,21 @@
 ## 薄い縦切り一本分の見通し
 
+### 0. 現状（リポジトリの実装状況）
+- Python の最小アプリ `keep_backup.app` が存在する
+  - `--mode backup` は `backups/YYYY-MM-DD/keep.json` にダミー1件を書き、ログと stdout の summary を出す
+  - `--mode smoke-playwright` は **ログイン無し**の Chromium 起動確認（Google Keep を開けるか）だけを行う
+- `backup_keep.bat` / `docker compose` など入口の整備は未着手
+- ログイン済みブラウザプロファイルの運用は未実装（CI 用の無ログイン smoke が先行）
+
+> このドキュメントは「これから縦切りを通すための実行プロンプト」として、**未着手点を明示**し、次の最短ステップを定義する。
+
 ### 1. この一本で“通す”こと（最小の成功パス）
-- Windowsで `backup_keep.bat` をダブルクリック
-- WSL(Ubuntu) 上で Docker コンテナを起動
-- コンテナ内の Playwright が **ログイン済みブラウザプロファイル**を使って Google Keep を開く
-- 画面に見えている範囲だけでいいので、ノート本文を少数取得して `keep.json` に保存
-- 1本のログファイルに「成功/失敗・取得件数・出力先」を残して終了
+- Windowsで `backup_keep.bat` をダブルクリック（入口は作る）
+- WSL(Ubuntu) 上で Docker コンテナを起動（入口は作る）
+- コンテナ内の Playwright が **ログイン済みブラウザプロファイル**を使って Google Keep を開く（要実装）
+- 画面に見えている範囲だけでいいので、ノート本文を少数取得して `keep.json` に保存（要実装）
+- 1本のログファイルに「成功/失敗・取得件数・出力先・所要時間」を残して終了
+- stdout にも同じ最小要約を出す（CI 互換）
 
 > 目的：最初から最後まで“動く”を確認するだけ。網羅性（全件取得）やアーカイブ/ゴミ箱は捨てる。
 
@@ -23,7 +33,7 @@
 
 ### 3. 入口を極限まで単純化（Windows→WSL）
 - バッチは「WSLで所定コマンドを叩く」だけにする  
-  - 例：`wsl -d Ubuntu -e bash -lc "cd ~/keep-backup && docker compose run —rm app"`
+  - 例：`wsl -d Ubuntu -e bash -lc "cd ~/keep-backup && docker compose run --rm app"`
 - パスや設定値はWSL側（`.env` や設定ファイル）に寄せ、バッチに持たせない
 
 —
@@ -71,7 +81,14 @@
   - 成功 or 失敗（終了コード）
   - 取得件数
   - 出力ディレクトリ
+  - 所要時間
   - 失敗時の例外メッセージ（あれば）
+
+### 8.5. stdout は CI 互換の最小要約のみ
+- 1 行目に summary を固定フォーマットで出す
+  - 例：`summary success=true notes_count=3 duration_seconds=4.20 output=backups/YYYY-MM-DD/keep.json`
+- 失敗時は 2 行目以降で `error=...` を出す
+  - ログ詳細はログファイルに寄せる
 
 —
 
@@ -79,5 +96,6 @@
 - バッチ一発で最後まで走る
 - `backups/YYYY-MM-DD/keep.json` が生成され、中に本文が複数入っている
 - `logs/run_*.log` が生成され、成功・件数・出力先が分かる
+- stdout の summary 1行で成功/失敗・件数・出力先・所要時間が分かる
 
 > ここまで到達したら勝ち。次のステップで「全件取得」「アーカイブ/ゴミ箱」「保持」「自動実行」に広げる前提の土台ができる。
