@@ -42,6 +42,10 @@ def write_backup(backup_file: Path, now: datetime, notes: list[dict[str, str]]) 
         handle.write("\n")
 
 
+def format_bool(value: bool) -> str:
+    return str(value).lower()
+
+
 def run_playwright_smoke(log_file: Path) -> int:
     start = datetime.now()
     append_log(log_file, "playwright smoke started")
@@ -77,7 +81,7 @@ def run_playwright_smoke(log_file: Path) -> int:
         duration = (end - start).total_seconds()
         summary = (
             "summary "
-            f"success={success} "
+            f"success={format_bool(success)} "
             f"notes_count={notes_count} "
             f"duration_seconds={duration:.2f} "
             f"output={output}"
@@ -115,7 +119,7 @@ def run_backup() -> int:
         duration = (end - start).total_seconds()
         summary = (
             "summary "
-            f"success={success} "
+            f"success={format_bool(success)} "
             f"notes_count={len(notes)} "
             f"duration_seconds={duration:.2f} "
             f"output={paths.backup_file}"
