@@ -99,17 +99,42 @@ def run_playwright_smoke(log_file: Path) -> int:
     return 0 if success else 1
 
 
-def run_backup() -> int:
+def load_notes_from_file(notes_file: Path) -> list[dict[str, str]]:
+    if not notes_file.exists():
+        raise FileNotFoundError(f"notes file not found: {notes_file}")
+    notes: list[dict[str, str]] = []
+    with notes_file.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            body = line.strip()
+            if body:
+                notes.append({"body": body})
+    return notes
+
+
+def build_notes(note_bodies: list[str], notes_file: Path | None) -> list[dict[str, str]]:
+    notes: list[dict[str, str]] = []
+    for body in note_bodies:
+        body = body.strip()
+        if body:
+            notes.append({"body": body})
+    if notes_file:
+        notes.extend(load_notes_from_file(notes_file))
+    if not notes:
+        raise ValueError("no notes provided. Use --note or --notes-file.")
+    return notes
+
+
+def run_backup(note_bodies: list[str], notes_file: Path | None) -> int:
     start = datetime.now()
     paths = build_paths(start)
-    append_log(paths.log_file, "run started")
+    append_log(paths.log_file, f"run started start_time={start.isoformat()}")
 
     success = False
     notes: list[dict[str, str]] = []
     error_message = None
 
     try:
-        notes = [{"body": "Hello World"}]
+        notes = build_notes(note_bodies, notes_file)
         write_backup(paths.backup_file, start, notes)
         success = True
     except Exception as exc:  # noqa: BLE001
@@ -124,10 +149,10 @@ def run_backup() -> int:
             f"duration_seconds={duration:.2f} "
             f"output={paths.backup_file}"
         )
-        append_log(paths.log_file, f"run finished (success={success})")
+        append_log(paths.log_file, f"run finished (success={success}) end_time={end.isoformat()}")
         append_log(paths.log_file, f"duration_seconds={duration:.2f}")
         append_log(paths.log_file, f"notes_count={len(notes)}")
-        append_log(paths.log_file, f"output={paths.backup_file}")
+        append_log(paths.log_file, f"output_dir={paths.backup_dir}")
         if error_message:
             append_log(paths.log_file, f"error={error_message}")
         print(summary)
@@ -145,6 +170,17 @@ def main() -> int:
         default="backup",
         help="Execution mode. Use smoke-playwright for no-profile browser startup check.",
     )
+    parser.add_argument(
+        "--note",
+        action="append",
+        default=[],
+        help="Manual note body text. Can be provided multiple times.",
+    )
+    parser.add_argument(
+        "--notes-file",
+        type=Path,
+        help="Path to a text file with one note body per line.",
+    )
     args = parser.parse_args()
 
     now = datetime.now()
@@ -152,7 +188,7 @@ def main() -> int:
 
     if args.mode == "smoke-playwright":
         return run_playwright_smoke(paths.log_file)
-    return run_backup()
+    return run_backup(args.note, args.notes_file)
 
 
 if __name__ == "__main__":
