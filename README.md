@@ -11,6 +11,19 @@ uv run python -m keep_backup.app --mode smoke-playwright
 
 This mode verifies Chromium can launch and reach Google Keep, then prints the same CI-friendly summary lines.
 
+## Thin vertical slice (manual notes)
+Provide a small set of note bodies manually and write a minimal `keep.json`:
+
+```bash
+uv run python -m keep_backup.app --mode backup --note "買い物メモ" --note "次の会議アジェンダ"
+```
+
+You can also load one note per line from a text file:
+
+```bash
+uv run python -m keep_backup.app --mode backup --notes-file notes.txt
+```
+
 ## CI summary and notifications
 The app prints a minimal stdout summary for CI consumption:
 
