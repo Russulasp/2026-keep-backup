@@ -46,14 +46,20 @@ def format_bool(value: bool) -> str:
     return str(value).lower()
 
 
-def run_playwright_smoke(log_file: Path) -> int:
+def run_playwright_smoke(
+    log_file: Path,
+    *,
+    url: str,
+    notes_selector: str | None = None,
+    min_notes: int | None = None,
+) -> int:
     start = datetime.now()
     append_log(log_file, "playwright smoke started")
 
     success = False
     notes_count = 0
     error_message = None
-    output = "-"
+    output = url
 
     try:
         try:
@@ -66,12 +72,17 @@ def run_playwright_smoke(log_file: Path) -> int:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True)
             page = browser.new_page()
-            response = page.goto("https://keep.google.com/", wait_until="domcontentloaded")
+            response = page.goto(url, wait_until="domcontentloaded")
             page.wait_for_timeout(1000)
             title = page.title()
-            status = response.status if response else "unknown"
+            status = response.status if response else "file"
             append_log(log_file, f"playwright smoke page_title={title}")
             append_log(log_file, f"playwright smoke http_status={status}")
+            if notes_selector:
+                notes_count = page.locator(notes_selector).count()
+                append_log(log_file, f"playwright smoke notes_count={notes_count}")
+                if min_notes is not None and notes_count < min_notes:
+                    raise RuntimeError(f"fixture notes count too small: {notes_count}")
             browser.close()
         success = True
     except Exception as exc:  # noqa: BLE001
@@ -97,6 +108,22 @@ def run_playwright_smoke(log_file: Path) -> int:
             print(f"error={error_message}")
 
     return 0 if success else 1
+
+
+def run_playwright_keep_smoke(log_file: Path) -> int:
+    return run_playwright_smoke(log_file, url="https://keep.google.com/")
+
+
+def run_playwright_fixture_smoke(log_file: Path, fixture_path: Path) -> int:
+    if not fixture_path.exists():
+        raise FileNotFoundError(f"fixture not found: {fixture_path}")
+    fixture_url = fixture_path.resolve().as_uri()
+    return run_playwright_smoke(
+        log_file,
+        url=fixture_url,
+        notes_selector='[data-testid="keep-note"]',
+        min_notes=1,
+    )
 
 
 def load_notes_from_file(notes_file: Path) -> list[dict[str, str]]:
@@ -166,7 +193,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--mode",
-        choices=["backup", "smoke-playwright"],
+        choices=["backup", "smoke-playwright", "smoke-playwright-fixture"],
         default="backup",
         help="Execution mode. Use smoke-playwright for no-profile browser startup check.",
     )
@@ -181,13 +208,21 @@ def main() -> int:
         type=Path,
         help="Path to a text file with one note body per line.",
     )
+    parser.add_argument(
+        "--fixture",
+        type=Path,
+        default=Path("fixtures/keep_mock.html"),
+        help="Path to a mock Keep HTML fixture for Playwright smoke.",
+    )
     args = parser.parse_args()
 
     now = datetime.now()
     paths = build_paths(now)
 
     if args.mode == "smoke-playwright":
-        return run_playwright_smoke(paths.log_file)
+        return run_playwright_keep_smoke(paths.log_file)
+    if args.mode == "smoke-playwright-fixture":
+        return run_playwright_fixture_smoke(paths.log_file, args.fixture)
     return run_backup(args.note, args.notes_file)
 
 
