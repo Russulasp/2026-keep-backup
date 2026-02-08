@@ -25,7 +25,7 @@ jobs:
         id: run_backup
         run: |
           set -uo pipefail
-          python -m keep_backup.app | tee run_output.txt
+          python -m keep_backup.app --note "ci-smoke-note" | tee run_output.txt
           exit_code=${PIPESTATUS[0]}
           summary_line=$(grep '^summary ' run_output.txt | tail -n1 || true)
           success=$(echo "$summary_line" | sed -n 's/.*success=\([^ ]*\).*/\1/p')
