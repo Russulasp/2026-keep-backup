@@ -1,0 +1,11 @@
+services:
+  app:
+    image: mcr.microsoft.com/playwright/python:v1.43.0-jammy
+    working_dir: /app
+    environment:
+      PYTHONPATH: /app/src
+    volumes:
+      - ./:/app
+    command: sleep infinity
+    tty: true
+    stdin_open: true

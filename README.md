@@ -2,6 +2,40 @@
 
 Minimal starter for backing up Google Keep notes.
 
+## Make commands (recommended entry)
+Run the common entry points via `make`:
+
+```bash
+make smoke
+```
+
+```bash
+make smoke-fixture
+```
+
+```bash
+make backup
+```
+
+## Docker Compose (optional)
+If you want to keep a Playwright-ready container around, start it with:
+
+```bash
+make docker-up
+```
+
+Stop it with:
+
+```bash
+make docker-down
+```
+
+You can also run the smoke check through Docker:
+
+```bash
+make docker-smoke
+```
+
 ## Smoke run (no profile)
 Run a Playwright startup smoke check without any login profile:
 
@@ -70,3 +104,12 @@ Expected stdout:
 
 - `summary success=true ...`
 - No `error=...` line
+
+## Future additions
+Planned additions (to be refined as the project matures):
+
+- Windows entry batch (`backup_keep.bat`) that only dispatches to WSL/Docker.
+- WSL entry that calls the shared Docker Compose command.
+- Logged-in browser profile handling for the real Keep scrape.
+- Standard vertical slice implementation (normal/archive/trash full backup).
+- Artifact capture for failures (`logs/artifacts/`).
