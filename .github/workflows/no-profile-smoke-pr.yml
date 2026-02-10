@@ -28,14 +28,14 @@ jobs:
         run: uv sync --locked
 
       - name: Install Playwright Chromium
-        run: uv run --with playwright playwright install --with-deps chromium
+        run: uv run playwright install --with-deps chromium
 
       - name: Run no-profile Playwright smoke (fixture)
         id: smoke
         run: |
           set -euo pipefail
 
-          uv run --with playwright python -m keep_backup.app --mode smoke-playwright-fixture | tee run_output.txt
+          uv run python -m keep_backup.app --mode smoke-playwright-fixture | tee run_output.txt
           exit_code=${PIPESTATUS[0]}
 
           summary_line=$(grep '^summary ' run_output.txt | tail -n1 || true)

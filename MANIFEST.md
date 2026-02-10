@@ -119,3 +119,12 @@ Google Keep のノートを、誤操作や障害により「まとめて消え�
   - `docs/vertical-slice-standard.md`
 - トラブル：`docs/troubleshooting.md`
 - 意思決定の経緯：`docs/adr/`（必要になったら導入）
+
+—
+
+## 11. 実行時依存の宣言方針
+- このリポジトリの実行時依存は **`pyproject.toml` と `uv.lock` に固定して宣言する**
+- `uv run --with ...` は一時検証用途に限定し、通常運用（ローカル/CI）の前提にはしない
+- Playwright 本体（Python パッケージ）は実行時依存として lock に含める
+- ブラウザバイナリ（Chromium）は環境準備として `playwright install chromium` で導入する
+- 依存追加/更新/削除時は lock を更新し、`uv lock --check` と `uv sync --locked` で整合性を確認する

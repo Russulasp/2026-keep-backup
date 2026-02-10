@@ -83,6 +83,14 @@ Notes:
 - `.env` is gitignored and must not be committed.
 - CI runs are expected to leave `KEEP_BROWSER_PROFILE_DIR` unset, so no-profile smoke remains available.
 
+
+## Runtime dependency policy
+Runtime dependencies are declared in `pyproject.toml` and locked in `uv.lock`.
+
+- Playwright (Python package) is included as a regular runtime dependency.
+- `uv run --with ...` is reserved for temporary local experiments and is not a standard local/CI execution path.
+- Browser binaries remain environment setup artifacts and are installed separately (`uv run playwright install chromium`).
+
 ## CI summary and notifications
 The app prints a minimal stdout summary for CI consumption:
 
@@ -111,7 +119,7 @@ What this workflow does:
 
 1. Runs `uv lock --check` and `uv sync --locked` for lock consistency.
 2. Installs Playwright Chromium in CI (`playwright install --with-deps chromium`) without using a logged-in profile.
-3. Executes `uv run --with playwright python -m keep_backup.app --mode smoke-playwright`.
+3. Executes `uv run python -m keep_backup.app --mode smoke-playwright`.
 4. Validates stdout contains a `summary ...` line with `success=true` and no `error=` line.
 5. Uploads `logs/run_*.log` as an artifact when the job fails.
 
@@ -121,8 +129,8 @@ You can reproduce CI smoke behavior locally:
 ```bash
 uv lock --check
 uv sync --locked
-uv run --with playwright playwright install chromium
-uv run --with playwright python -m keep_backup.app --mode smoke-playwright
+uv run playwright install chromium
+uv run python -m keep_backup.app --mode smoke-playwright
 ```
 
 Expected stdout:
