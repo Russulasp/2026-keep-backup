@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
+from typing import Iterator
 
 from keep_backup.io import (
     RunPaths,
@@ -136,39 +138,14 @@ def run_playwright_smoke(
     output = url
 
     try:
-        try:
-            from playwright.sync_api import sync_playwright
-        except ModuleNotFoundError as exc:
-            raise RuntimeError(
-                "playwright is not installed. Install dependencies and run `playwright install chromium`."
-            ) from exc
-
-        with sync_playwright() as playwright:
-            if profile_dir:
-                append_log(log_file, f"playwright smoke profile_dir={profile_dir}")
-                context = playwright.chromium.launch_persistent_context(
-                    user_data_dir=str(profile_dir),
-                    headless=True,
-                )
-                page = context.pages[0] if context.pages else context.new_page()
-            else:
-                append_log(log_file, "playwright smoke profile_dir=(none)")
-                browser = playwright.chromium.launch(headless=True)
-                context = browser.new_context()
-                page = context.new_page()
-
-            response = page.goto(url, wait_until="domcontentloaded")
-            page.wait_for_timeout(1000)
-            title = page.title()
-            status = response.status if response else "file"
-            append_log(log_file, f"playwright smoke page_title={title}")
-            append_log(log_file, f"playwright smoke http_status={status}")
-            if notes_selector:
-                notes_count = page.locator(notes_selector).count()
-                append_log(log_file, f"playwright smoke notes_count={notes_count}")
-                if min_notes is not None and notes_count < min_notes:
-                    raise RuntimeError(f"fixture notes count too small: {notes_count}")
-            context.close()
+        with _open_playwright_page(log_file, profile_dir) as page:
+            notes_count = _verify_playwright_page(
+                page,
+                log_file=log_file,
+                url=url,
+                notes_selector=notes_selector,
+                min_notes=min_notes,
+            )
         success = True
     except Exception as exc:  # noqa: BLE001
         error_message = str(exc)
@@ -201,3 +178,60 @@ def run_playwright_fixture_smoke(log_file: Path, fixture_path: Path) -> int:
         notes_selector='[data-testid="keep-note"]',
         min_notes=1,
     )
+
+
+def _load_sync_playwright():
+    try:
+        from playwright.sync_api import sync_playwright
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "playwright is not installed. Install dependencies and run `playwright install chromium`."
+        ) from exc
+    return sync_playwright
+
+
+@contextmanager
+def _open_playwright_page(log_file: Path, profile_dir: Path | None) -> Iterator[object]:
+    sync_playwright = _load_sync_playwright()
+    with sync_playwright() as playwright:
+        if profile_dir:
+            append_log(log_file, f"playwright smoke profile_dir={profile_dir}")
+            context = playwright.chromium.launch_persistent_context(
+                user_data_dir=str(profile_dir),
+                headless=True,
+            )
+            page = context.pages[0] if context.pages else context.new_page()
+        else:
+            append_log(log_file, "playwright smoke profile_dir=(none)")
+            browser = playwright.chromium.launch(headless=True)
+            context = browser.new_context()
+            page = context.new_page()
+
+        try:
+            yield page
+        finally:
+            context.close()
+
+
+def _verify_playwright_page(
+    page: object,
+    *,
+    log_file: Path,
+    url: str,
+    notes_selector: str | None,
+    min_notes: int | None,
+) -> int:
+    response = page.goto(url, wait_until="domcontentloaded")
+    page.wait_for_timeout(1000)
+    title = page.title()
+    status = response.status if response else "file"
+    append_log(log_file, f"playwright smoke page_title={title}")
+    append_log(log_file, f"playwright smoke http_status={status}")
+
+    notes_count = 0
+    if notes_selector:
+        notes_count = page.locator(notes_selector).count()
+        append_log(log_file, f"playwright smoke notes_count={notes_count}")
+        if min_notes is not None and notes_count < min_notes:
+            raise RuntimeError(f"fixture notes count too small: {notes_count}")
+    return notes_count
