@@ -54,6 +54,33 @@ def _print_summary(
         print(f"error={error_message}")
 
 
+def _finalize_run(
+    *,
+    log_file: Path,
+    run_label: str,
+    start: datetime,
+    success: bool,
+    notes_count: int,
+    output: Path | str,
+    error_message: str | None,
+) -> None:
+    end = datetime.now()
+    duration = (end - start).total_seconds()
+    append_log(log_file, f"{run_label} finished (success={success}) end_time={end.isoformat()}")
+    append_log(log_file, f"duration_seconds={duration:.2f}")
+    append_log(log_file, f"notes_count={notes_count}")
+    append_log(log_file, f"output={output}")
+    if error_message:
+        append_log(log_file, f"error={error_message}")
+    _print_summary(
+        success=success,
+        notes_count=notes_count,
+        duration=duration,
+        output=output,
+        error_message=error_message,
+    )
+
+
 def run_backup(note_bodies: list[str], notes_file: Path | None) -> int:
     start = datetime.now()
     paths = build_paths(start)
@@ -79,18 +106,12 @@ def run_backup_with_paths(
     except Exception as exc:  # noqa: BLE001
         error_message = str(exc)
     finally:
-        end = datetime.now()
-        duration = (end - start).total_seconds()
-        append_log(paths.log_file, f"run finished (success={success}) end_time={end.isoformat()}")
-        append_log(paths.log_file, f"duration_seconds={duration:.2f}")
-        append_log(paths.log_file, f"notes_count={len(notes)}")
-        append_log(paths.log_file, f"output_dir={paths.backup_dir}")
-        if error_message:
-            append_log(paths.log_file, f"error={error_message}")
-        _print_summary(
+        _finalize_run(
+            log_file=paths.log_file,
+            run_label="run",
+            start=start,
             success=success,
             notes_count=len(notes),
-            duration=duration,
             output=paths.backup_file,
             error_message=error_message,
         )
@@ -107,7 +128,7 @@ def run_playwright_smoke(
     min_notes: int | None = None,
 ) -> int:
     start = datetime.now()
-    append_log(log_file, "playwright smoke started")
+    append_log(log_file, f"playwright smoke started start_time={start.isoformat()}")
 
     success = False
     notes_count = 0
@@ -152,18 +173,12 @@ def run_playwright_smoke(
     except Exception as exc:  # noqa: BLE001
         error_message = str(exc)
     finally:
-        end = datetime.now()
-        duration = (end - start).total_seconds()
-        append_log(log_file, f"playwright smoke finished (success={success})")
-        append_log(log_file, f"duration_seconds={duration:.2f}")
-        append_log(log_file, f"notes_count={notes_count}")
-        append_log(log_file, f"output={output}")
-        if error_message:
-            append_log(log_file, f"error={error_message}")
-        _print_summary(
+        _finalize_run(
+            log_file=log_file,
+            run_label="playwright smoke",
+            start=start,
             success=success,
             notes_count=notes_count,
-            duration=duration,
             output=output,
             error_message=error_message,
         )
