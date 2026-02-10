@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -50,6 +51,7 @@ def run_playwright_smoke(
     log_file: Path,
     *,
     url: str,
+    profile_dir: Path | None = None,
     notes_selector: str | None = None,
     min_notes: int | None = None,
 ) -> int:
@@ -70,8 +72,19 @@ def run_playwright_smoke(
             ) from exc
 
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(headless=True)
-            page = browser.new_page()
+            if profile_dir:
+                append_log(log_file, f"playwright smoke profile_dir={profile_dir}")
+                context = playwright.chromium.launch_persistent_context(
+                    user_data_dir=str(profile_dir),
+                    headless=True,
+                )
+                page = context.pages[0] if context.pages else context.new_page()
+            else:
+                append_log(log_file, "playwright smoke profile_dir=(none)")
+                browser = playwright.chromium.launch(headless=True)
+                context = browser.new_context()
+                page = context.new_page()
+
             response = page.goto(url, wait_until="domcontentloaded")
             page.wait_for_timeout(1000)
             title = page.title()
@@ -83,7 +96,7 @@ def run_playwright_smoke(
                 append_log(log_file, f"playwright smoke notes_count={notes_count}")
                 if min_notes is not None and notes_count < min_notes:
                     raise RuntimeError(f"fixture notes count too small: {notes_count}")
-            browser.close()
+            context.close()
         success = True
     except Exception as exc:  # noqa: BLE001
         error_message = str(exc)
@@ -111,7 +124,30 @@ def run_playwright_smoke(
 
 
 def run_playwright_keep_smoke(log_file: Path) -> int:
-    return run_playwright_smoke(log_file, url="https://keep.google.com/")
+    profile_dir = load_keep_profile_dir()
+    return run_playwright_smoke(log_file, url="https://keep.google.com/", profile_dir=profile_dir)
+
+
+def load_keep_profile_dir() -> Path | None:
+    raw_value = os.environ.get("KEEP_BROWSER_PROFILE_DIR", "").strip()
+    if not raw_value:
+        return None
+    return Path(raw_value).expanduser()
+
+
+
+def load_dotenv_if_present(dotenv_path: Path = Path(".env")) -> None:
+    if not dotenv_path.exists():
+        return
+    with dotenv_path.open("r", encoding="utf-8") as handle:
+        for raw_line in handle:
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            os.environ.setdefault(key, value)
 
 
 def run_playwright_fixture_smoke(log_file: Path, fixture_path: Path) -> int:
@@ -190,6 +226,8 @@ def run_backup(note_bodies: list[str], notes_file: Path | None) -> int:
 
 
 def main() -> int:
+    load_dotenv_if_present()
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--mode",
