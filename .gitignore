@@ -8,3 +8,8 @@ __pycache__/
 *.pyo
 *.pyd
 *.egg-info/
+# Local environment
+.env
+.env.*
+!.env.example
+

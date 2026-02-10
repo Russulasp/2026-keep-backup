@@ -58,6 +58,31 @@ You can also load one note per line from a text file:
 uv run python -m keep_backup.app --mode backup --notes-file notes.txt
 ```
 
+
+## Logged-in browser profile configuration
+This project treats the logged-in Chromium profile as an **external asset**.
+Do not copy the profile folder into this repository.
+
+1. Copy the sample file and set your local value:
+
+```bash
+cp .env.example .env
+```
+
+2. Set `KEEP_BROWSER_PROFILE_DIR` in `.env` to an absolute path on your machine (outside the repo).
+
+Example:
+
+```env
+KEEP_BROWSER_PROFILE_DIR=/home/yourname/.config/google-chrome/Profile 1
+```
+
+3. Run smoke/backup as usual. The app reads only `KEEP_BROWSER_PROFILE_DIR` and does not depend on a hard-coded profile location.
+
+Notes:
+- `.env` is gitignored and must not be committed.
+- CI runs are expected to leave `KEEP_BROWSER_PROFILE_DIR` unset, so no-profile smoke remains available.
+
 ## CI summary and notifications
 The app prints a minimal stdout summary for CI consumption:
 
