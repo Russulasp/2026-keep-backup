@@ -1,51 +1,49 @@
 flowchart TD
-    %% detailed extension diagram for backup mode
-
-    subgraph LEGEND[Legend / Annotation rules]
-      L1["Node label format\n1) name\n2) type + file location\n3) responsibility\n4) example value"]
-      L2["Arrow labels show data type + concrete sample"]
+    subgraph LEGEND["Legend and annotation rules"]
+        L1["Node label format: name, type and file location, responsibility, example value"]
+        L2["Arrow labels show data type and concrete sample"]
     end
 
-    subgraph IN[External Input Boundary (I/O)]
-      A1["CLI invocation\n[external input]\nResponsibility: user passes execution intent\nExample: --mode backup --note 'Buy milk' --note 'Send invoice' --notes-file notes.txt"]
-      A2["notes.txt\n[file input]\nResponsibility: optional batch note source\nExample lines: 'Plan trip', 'Book dentist'"]
+    subgraph IN["External input boundary"]
+        A1["CLI invocation external input responsibility user passes execution intent example mode backup and notes file"]
+        A2["notes.txt file input responsibility optional batch note source example lines Plan trip and Book dentist"]
     end
 
-    subgraph APP[Application Internal Boundary]
-      B1["main(argv)\n(function) src/keep_backup/app.py\nResponsibility: bootstrap + mode dispatch\nExample: argv=['--mode','backup','--note','Buy milk']"]
-      B2["parse_args(argv)\n(function) src/keep_backup/cli.py\nResponsibility: parse CLI into argparse.Namespace\nExample: mode='backup', note=['Buy milk','Send invoice'], notes_file=Path('notes.txt')"]
-      B3["build_paths(now)\n(function) src/keep_backup/io.py\nResponsibility: derive dated backup/log paths\nExample: RunPaths(backup_file='backups/2026-02-12/keep.json', log_file='logs/run_2026-02-12_103355.log')"]
-      B4["run_backup(note_bodies, notes_file)\n(function) src/keep_backup/runner.py\nResponsibility: create start time + delegate\nExample: note_bodies len=2"]
-      B5["run_backup_with_paths(...)\n(function) src/keep_backup/runner.py\nResponsibility: orchestration + error handling + exit code\nExample: success=true/false, return 0/1"]
-      B6["build_notes(note_bodies, notes_file)\n(function) src/keep_backup/runner.py\nResponsibility: normalize note payload list\nExample result: [{'body':'Buy milk'},{'body':'Plan trip'}]"]
-      B7["write_backup(backup_file, now, notes)\n(function) src/keep_backup/io.py\nResponsibility: serialize payload JSON\nExample payload.scraped_at='2026-02-12T10:33:55', notes_count=3"]
-      B8["_finalize_run(...)\n(function) src/keep_backup/runner.py\nResponsibility: common finish logging + summary output\nExample: success=true, notes_count=3, output='backups/.../keep.json'"]
-      B9["append_log(log_file, message)\n(function) src/keep_backup/io.py\nResponsibility: append timestamped run events\nExample line: [2026-02-12T10:33:56] notes_count=3"]
-      B10["_print_summary(...)\n(function) src/keep_backup/runner.py\nResponsibility: stdout summary/error lines\nExample: summary success=true notes_count=3 duration_seconds=1.24 output=backups/.../keep.json"]
+    subgraph APP["Application internal boundary"]
+        B1["main argv function src keep_backup app py responsibility bootstrap and mode dispatch example argv with mode backup"]
+        B2["parse_args argv function src keep_backup cli py responsibility parse CLI into namespace example mode backup and notes file path"]
+        B3["build_paths now function src keep_backup io py responsibility derive dated backup and log paths example backups date keep json and logs run timestamp log"]
+        B4["run_backup note_bodies notes_file function src keep_backup runner py responsibility create start time and delegate example note bodies length two"]
+        B5["run_backup_with_paths function src keep_backup runner py responsibility orchestration error handling and exit code example success true or false and return 0 or 1"]
+        B6["build_notes note_bodies notes_file function src keep_backup runner py responsibility normalize note payload list example body Buy milk and body Plan trip"]
+        B7["write_backup backup_file now notes function src keep_backup io py responsibility serialize payload JSON example scraped_at timestamp and notes_count three"]
+        B8["finalize_run function src keep_backup runner py responsibility finish logging and summary output example success true notes_count three and output path"]
+        B9["append_log log_file message function src keep_backup io py responsibility append timestamped run events example notes_count three log line"]
+        B10["print_summary function src keep_backup runner py responsibility stdout summary and error lines example summary success true notes_count three duration and output"]
     end
 
-    subgraph OUT[External Output Boundary (I/O)]
-      C1[("backups/YYYY-MM-DD/keep.json\n[file output]\nExample: backups/2026-02-12/keep.json")]
-      C2[("logs/run_YYYY-MM-DD_HHMMSS.log\n[file output]\nExample: logs/run_2026-02-12_103355.log")]
-      C3["stdout\n[process output]\nExample:\nsummary success=true notes_count=3 duration_seconds=1.24 output=backups/.../keep.json"]
+    subgraph OUT["External output boundary"]
+        C1["backups date keep json file output example backups 2026 02 12 keep json"]
+        C2["logs run timestamp log file output example logs run 2026 02 12 103355 log"]
+        C3["stdout process output example summary success true notes_count three duration_seconds and output path"]
     end
 
-    A1 -->|"argv: list[str] (e.g. ['--mode','backup','--note','Buy milk','--notes-file','notes.txt'])"| B1
-    B1 -->|"argv -> argparse.Namespace"| B2
-    B1 -->|"now: datetime (e.g. 2026-02-12T10:33:55)"| B3
-    B1 -->|"dispatch mode='backup'"| B4
+    A1 -->|"argv list string example mode backup note and notes file"| B1
+    B1 -->|"argv to argparse namespace"| B2
+    B1 -->|"now datetime example 2026 02 12 T10 33 55"| B3
+    B1 -->|"dispatch mode backup"| B4
 
-    B4 -->|"creates start: datetime + RunPaths"| B5
-    B5 -->|"note_bodies: list[str] + notes_file: Path|None"| B6
-    A2 -->|"Path('notes.txt')"| B6
+    B4 -->|"creates start datetime and run paths"| B5
+    B5 -->|"note_bodies list string and notes_file path or none"| B6
+    A2 -->|"path notes txt"| B6
 
-    B6 -->|"notes: list[dict[str,str]] (example count=3)"| B7
+    B6 -->|"notes list dictionary string string example count three"| B7
     B7 -->|"JSON payload write"| C1
 
     B5 -->|"log message strings"| B9
     B9 -->|"append lines"| C2
 
-    B5 -->|"finalize args: success / notes_count / output / error_message"| B8
+    B5 -->|"finalize args success notes_count output error_message"| B8
     B8 -->|"log message strings"| B9
     B8 -->|"summary fields"| B10
-    B10 -->|"summary + optional error line"| C3
+    B10 -->|"summary and optional error line"| C3
