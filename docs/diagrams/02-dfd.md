@@ -17,7 +17,7 @@ flowchart TD
 
     F["入力データ: notes.txt<br/>任意"] --> G[build_notes]
     C --> G
-    G -->|notes[]| E
+    G -->|"notes[]"| E
 
     E --> H[write_backup]
     H --> I[(backups/YYYY-MM-DD/keep.json)]
