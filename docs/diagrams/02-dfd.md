@@ -4,6 +4,7 @@
 - 出口: `backups/YYYY-MM-DD/keep.json`、`logs/run_YYYY-MM-DD_HHMMSS.log`、stdout `summary`/`error`。
 - 主要関数: `parse_args`、`build_notes`、`write_backup`、`_finalize_run`。
 - テストコマンド: `uv run python -m unittest`。
+- 詳細版（型/定義場所/責務/具体値つき）: `docs/diagrams/02-dfd-detailed.mmd`。
 - CIコマンド（関連）: `python -m keep_backup.app --note "ci-smoke-note"`（`backup-ci.yml`）。
 
 ```mermaid
