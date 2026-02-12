@@ -8,29 +8,29 @@
 
 ```mermaid
 flowchart TD
-    A[入力: CLI引数<br/>--note / --notes-file / --mode] --> B[app.main]
+    A["入力: CLI引数<br/>--note / --notes-file / --mode"] --> B[app.main]
     B --> C[parse_args]
-    B --> D[build_paths(now)]
+    B --> D[build_paths now]
 
     C --> E[run_backup_with_paths]
     D --> E
 
-    F[入力データ: notes.txt<br/>任意] --> G[build_notes]
+    F["入力データ: notes.txt<br/>任意"] --> G[build_notes]
     C --> G
     G -->|notes[]| E
 
     E --> H[write_backup]
     H --> I[(backups/YYYY-MM-DD/keep.json)]
 
-    E --> J[append_log(start/finish/duration/...)]
+    E --> J[append_log start finish duration]
     J --> K[(logs/run_YYYY-MM-DD_HHMMSS.log)]
 
-    E --> L[stdout summary/error]
+    E --> L[stdout summary error]
 
-    M[[テスト]] -.検証.-> G
-    M -.検証.-> H
-    M -.検証.-> J
-    M -.検証.-> L
+    M[[テスト]] -.->|検証| G
+    M -.->|検証| H
+    M -.->|検証| J
+    M -.->|検証| L
 ```
 
 ## テスト重ね合わせ（要点）
