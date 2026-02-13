@@ -17,6 +17,39 @@ make smoke-fixture
 make backup
 ```
 
+## 帰宅後にそのまま打てる実行順（迷わない版）
+まずはリポジトリ直下で以下を順番に実行してください。
+
+```bash
+cd /path/to/2026-keep-backup
+uv lock --check
+uv sync --locked
+uv run playwright install chromium
+cp -n .env.example .env
+```
+
+次に `.env` を開いて、ログイン済みプロファイルの実パスを設定します。
+
+```env
+KEEP_BROWSER_PROFILE_DIR=/home/yourname/.config/google-chrome/Profile 1
+```
+
+ここまでできたら、以下の順番で確認すると迷いにくいです。
+
+```bash
+make smoke
+make smoke-fixture
+make backup
+```
+
+Docker 経由で確認したい場合は、次の順で実行します。
+
+```bash
+make docker-up
+make docker-smoke
+make docker-down
+```
+
 ## Docker Compose (optional)
 If you want to keep a Playwright-ready container around, start it with:
 
