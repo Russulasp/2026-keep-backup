@@ -25,7 +25,7 @@ cd /path/to/2026-keep-backup
 uv lock --check
 uv sync --locked
 uv run playwright install chromium
-cp -n .env.example .env
+cp --update=none .env.example .env
 ```
 
 次に `.env` を開いて、ログイン済みプロファイルの実パスを設定します。
@@ -39,7 +39,7 @@ KEEP_BROWSER_PROFILE_DIR=/home/yourname/.config/google-chrome/Profile 1
 ```bash
 make smoke
 make smoke-fixture
-make backup
+uv run python -m keep_backup.app --mode backup --note "買い物メモ"
 ```
 
 Docker 経由で確認したい場合は、次の順で実行します。
