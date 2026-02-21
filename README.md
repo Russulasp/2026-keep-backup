@@ -50,6 +50,12 @@ make docker-smoke
 make docker-down
 ```
 
+ログイン済みプロファイルを Docker で使う場合は、`.env` の
+`KEEP_BROWSER_PROFILE_DIR` に **WSL 側の絶対パス** を設定してください。
+`docker-compose.yml` でそのパスを `/keep-profile` に bind mount し、
+コンテナ内では `KEEP_BROWSER_PROFILE_DIR=/keep-profile` を使うため、
+WSL と Docker のパス差分を意識せずに実行できます。
+
 ## Docker Compose (optional)
 If you want to keep a Playwright-ready container around, start it with:
 
@@ -111,6 +117,8 @@ KEEP_BROWSER_PROFILE_DIR=/home/yourname/.config/google-chrome/Profile 1
 ```
 
 3. Run smoke/backup as usual. The app reads only `KEEP_BROWSER_PROFILE_DIR` and does not depend on a hard-coded profile location.
+   - ローカル (`uv run ...`) 実行時は `.env` の実パスをそのまま使います。
+   - Docker (`docker compose ...`) 実行時は、指定したパスを `/keep-profile` に mount して参照します。
 
 Notes:
 - `.env` is gitignored and must not be committed.
