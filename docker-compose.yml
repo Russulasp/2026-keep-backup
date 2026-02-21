@@ -4,8 +4,10 @@ services:
     working_dir: /app
     environment:
       PYTHONPATH: /app/src
+      KEEP_BROWSER_PROFILE_DIR: /keep-profile
     volumes:
       - ./:/app
+      - ${KEEP_BROWSER_PROFILE_DIR:-./.docker/keep-profile}:/keep-profile
     command: sleep infinity
     tty: true
     stdin_open: true
