@@ -1,6 +1,8 @@
 services:
   app:
-    image: mcr.microsoft.com/playwright/python:v1.55.0-jammy
+    build:
+      context: .
+      dockerfile: Dockerfile
     working_dir: /app
     environment:
       PYTHONPATH: /app/src
