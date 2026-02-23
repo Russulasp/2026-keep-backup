@@ -16,4 +16,4 @@ docker-down:
 	docker compose down
 
 docker-smoke:
-	docker compose run --rm app python -m keep_backup.app --mode smoke-playwright
+	docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright

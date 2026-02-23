@@ -50,6 +50,10 @@ make docker-smoke
 make docker-down
 ```
 
+Docker イメージ内の依存は `uv sync --locked` で `uv.lock` から解決されます。
+ローカルで `pyproject.toml` / `uv.lock` を更新した場合は、`make docker-up`（`--build` 付き）を再実行して
+イメージ内依存を同期してください。
+
 ログイン済みプロファイルを Docker で使う場合は、`.env` の
 `KEEP_BROWSER_PROFILE_DIR` に **WSL 側の絶対パス** を設定してください。
 `docker-compose.yml` でそのパスを `/keep-profile` に bind mount し、
@@ -75,9 +79,10 @@ You can also run the smoke check through Docker:
 make docker-smoke
 ```
 
-`make docker-up` now builds the local `Dockerfile`, which pins a Playwright-ready base image
-and installs the Python Playwright package used by this project. If dependencies change, rerun
-`make docker-up` to rebuild before `make docker-smoke`.
+`make docker-up` now builds the local `Dockerfile`, which pins a Playwright-ready base image,
+installs `uv`, and runs `uv sync --locked` during image build. `make docker-smoke` runs the app
+through `uv run --no-sync`, so Docker execution also follows `pyproject.toml + uv.lock` as the
+single dependency source of truth.
 
 ## Smoke run (no profile)
 Run a Playwright startup smoke check without any login profile:
@@ -135,6 +140,7 @@ Runtime dependencies are declared in `pyproject.toml` and locked in `uv.lock`.
 - Playwright (Python package) is included as a regular runtime dependency.
 - `uv run --with ...` is reserved for temporary local experiments and is not a standard local/CI execution path.
 - Browser binaries remain environment setup artifacts and are installed separately (`uv run playwright install chromium`).
+- Docker image builds also install dependencies from lock via `uv sync --locked`, and runtime commands use `uv run`.
 
 ## CI summary and notifications
 The app prints a minimal stdout summary for CI consumption:
