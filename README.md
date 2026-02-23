@@ -75,6 +75,9 @@ You can also run the smoke check through Docker:
 make docker-smoke
 ```
 
+If `make docker-smoke` fails with `playwright is not installed`, ensure the Docker image tag in
+`docker-compose.yml` matches the Playwright major/minor used by this project dependencies.
+
 ## Smoke run (no profile)
 Run a Playwright startup smoke check without any login profile:
 
