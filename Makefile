@@ -10,7 +10,7 @@ backup:
 	uv run python -m keep_backup.app --mode backup
 
 docker-up:
-	docker compose up -d
+	docker compose up -d --build
 
 docker-down:
 	docker compose down
