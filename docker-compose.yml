@@ -7,6 +7,7 @@ services:
     environment:
       PYTHONPATH: /app/src
       KEEP_BROWSER_PROFILE_DIR: /keep-profile
+      UV_PROJECT_ENVIRONMENT: /opt/venv
     volumes:
       - ./:/app
       - ${KEEP_BROWSER_PROFILE_DIR:-./.docker/keep-profile}:/keep-profile
