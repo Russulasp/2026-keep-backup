@@ -13,19 +13,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: Lock consistency check
-        run: uv lock --check
-
-      - name: Sync dependencies from lock
-        run: uv sync --locked
+      - name: Set up Python and uv dependencies
+        uses: ./.github/actions/setup-python-uv
 
       - name: Run backup and capture stdout
         id: run_backup

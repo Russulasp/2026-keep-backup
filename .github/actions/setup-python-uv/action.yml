@@ -1,0 +1,22 @@
+name: setup-python-uv
+
+description: Set up Python 3.11 and project dependencies via uv lock
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v4
+
+    - name: Lock consistency check
+      shell: bash
+      run: uv lock --check
+
+    - name: Sync dependencies from lock
+      shell: bash
+      run: uv sync --locked

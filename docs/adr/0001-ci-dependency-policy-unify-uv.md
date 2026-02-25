@@ -91,6 +91,31 @@
 4. 1 週間程度、PR/main の成功率と差分障害を観測
 5. 必要なら依存セットアップを共通化（Option C）
 
+## Update (Option C implementation)
+
+- Date: 2026-02-25
+- Decision: **Option C を composite action で実装**する。
+
+### Why composite action
+
+- 依存セットアップは「単一 job の step 群」の再利用で十分であり、job 分割や output 受け渡しを増やさずに共通化できる。
+- 既存 workflow の責務（PR 側の fixture smoke + 失敗時 artifact、main 側の parse + mail 通知）をそのまま維持しやすい。
+- 将来、Python 版本や `uv` 手順の更新が 1 箇所で済み、修正漏れリスクを下げられる。
+
+### Implemented scope
+
+- `.github/actions/setup-python-uv/action.yml` を新規追加
+  - Python 3.11 セットアップ
+  - `astral-sh/setup-uv@v4`
+  - `uv lock --check`
+  - `uv sync --locked`
+- `no-profile-smoke-pr.yml` / `backup-ci.yml` は上記 composite action を呼び出す構成に変更
+
+### Compatibility notes
+
+- 実行コマンド本体（`uv run ...`）と stdout 解析（`summary ...` / `error=`）は未変更。
+- 通知方式（メール）・artifact 収集条件も未変更。
+
 ## Non-goals
 
 - この ADR では CI の通知方式（メール送信）は変更しない
