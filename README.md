@@ -31,7 +31,8 @@ cp --update=none .env.example .env
 次に `.env` を開いて、ログイン済みプロファイルの実パスを設定します。
 
 ```env
-KEEP_BROWSER_PROFILE_DIR=/home/yourname/.config/google-chrome/Profile 1
+KEEP_BROWSER_PROFILE_DIR_HOST=/home/yourname/.config/google-chrome/Profile 1
+KEEP_BROWSER_PROFILE_DIR_CONTAINER=/keep-profile
 ```
 
 ここまでできたら、以下の順番で確認すると迷いにくいです。
@@ -55,9 +56,10 @@ Docker イメージ内の依存は `uv sync --locked` で `uv.lock` から解決
 イメージ内依存を同期してください。
 
 ログイン済みプロファイルを Docker で使う場合は、`.env` の
-`KEEP_BROWSER_PROFILE_DIR` に **WSL 側の絶対パス** を設定してください。
-`docker-compose.yml` でそのパスを `/keep-profile` に bind mount し、
-コンテナ内では `KEEP_BROWSER_PROFILE_DIR=/keep-profile` を使うため、
+`KEEP_BROWSER_PROFILE_DIR_HOST` に **WSL 側の絶対パス** を設定してください。
+`docker-compose.yml` では `KEEP_BROWSER_PROFILE_DIR_HOST` を bind mount のソースに使い、
+`KEEP_BROWSER_PROFILE_DIR_CONTAINER`（既定値 `/keep-profile`）をコンテナ側パスとして使います。
+さらにアプリには `KEEP_BROWSER_PROFILE_DIR` としてコンテナ側パスを渡すため、
 WSL と Docker のパス差分を意識せずに実行できます。
 
 ## Docker Compose (optional)
@@ -117,21 +119,22 @@ Do not copy the profile folder into this repository.
 cp .env.example .env
 ```
 
-2. Set `KEEP_BROWSER_PROFILE_DIR` in `.env` to an absolute path on your machine (outside the repo).
+2. Set `KEEP_BROWSER_PROFILE_DIR_HOST` in `.env` to an absolute path on your machine (outside the repo). Optionally keep `KEEP_BROWSER_PROFILE_DIR_CONTAINER=/keep-profile`.
 
 Example:
 
 ```env
-KEEP_BROWSER_PROFILE_DIR=/home/yourname/.config/google-chrome/Profile 1
+KEEP_BROWSER_PROFILE_DIR_HOST=/home/yourname/.config/google-chrome/Profile 1
+KEEP_BROWSER_PROFILE_DIR_CONTAINER=/keep-profile
 ```
 
-3. Run smoke/backup as usual. The app reads only `KEEP_BROWSER_PROFILE_DIR` and does not depend on a hard-coded profile location.
-   - ローカル (`uv run ...`) 実行時は `.env` の実パスをそのまま使います。
-   - Docker (`docker compose ...`) 実行時は、指定したパスを `/keep-profile` に mount して参照します。
+3. Run smoke/backup as usual.
+   - ローカル (`uv run ...`) 実行時は、アプリが `KEEP_BROWSER_PROFILE_DIR`（互換用）または `KEEP_BROWSER_PROFILE_DIR_HOST` を読みます。
+   - Docker (`docker compose ...`) 実行時は、`KEEP_BROWSER_PROFILE_DIR_HOST` を `KEEP_BROWSER_PROFILE_DIR_CONTAINER` に mount し、アプリへは `KEEP_BROWSER_PROFILE_DIR` としてコンテナ側パスを渡します。
 
 Notes:
 - `.env` is gitignored and must not be committed.
-- CI runs are expected to leave `KEEP_BROWSER_PROFILE_DIR` unset, so no-profile smoke remains available.
+- CI runs are expected to leave `KEEP_BROWSER_PROFILE_DIR` / `KEEP_BROWSER_PROFILE_DIR_HOST` unset, so no-profile smoke remains available.
 
 
 ## Runtime dependency policy
