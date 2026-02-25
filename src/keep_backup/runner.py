@@ -19,6 +19,8 @@ from keep_backup.io import (
 def load_keep_profile_dir() -> Path | None:
     raw_value = os.environ.get("KEEP_BROWSER_PROFILE_DIR", "").strip()
     if not raw_value:
+        raw_value = os.environ.get("KEEP_BROWSER_PROFILE_DIR_HOST", "").strip()
+    if not raw_value:
         return None
     return Path(raw_value).expanduser()
 

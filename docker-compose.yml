@@ -6,11 +6,11 @@ services:
     working_dir: /app
     environment:
       PYTHONPATH: /app/src
-      KEEP_BROWSER_PROFILE_DIR: /keep-profile
+      KEEP_BROWSER_PROFILE_DIR: ${KEEP_BROWSER_PROFILE_DIR_CONTAINER:-/keep-profile}
       UV_PROJECT_ENVIRONMENT: /opt/venv
     volumes:
       - ./:/app
-      - ${KEEP_BROWSER_PROFILE_DIR:-./.docker/keep-profile}:/keep-profile
+      - ${KEEP_BROWSER_PROFILE_DIR_HOST:-./.docker/keep-profile}:${KEEP_BROWSER_PROFILE_DIR_CONTAINER:-/keep-profile}
     command: sleep infinity
     tty: true
     stdin_open: true

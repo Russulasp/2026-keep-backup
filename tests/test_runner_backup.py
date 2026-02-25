@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -9,10 +10,29 @@ from io import StringIO
 from pathlib import Path
 
 from keep_backup.io import RunPaths
-from keep_backup.runner import build_notes, run_backup_with_paths
+from keep_backup.runner import build_notes, load_keep_profile_dir, run_backup_with_paths
 
 
 class RunnerBackupTests(unittest.TestCase):
+
+    def test_load_keep_profile_dir_reads_host_variable_as_fallback(self) -> None:
+        original_main = os.environ.pop("KEEP_BROWSER_PROFILE_DIR", None)
+        original_host = os.environ.pop("KEEP_BROWSER_PROFILE_DIR_HOST", None)
+        try:
+            os.environ["KEEP_BROWSER_PROFILE_DIR_HOST"] = "~/profile-host"
+            profile_dir = load_keep_profile_dir()
+            self.assertIsNotNone(profile_dir)
+            self.assertTrue(str(profile_dir).endswith("profile-host"))
+        finally:
+            if original_main is not None:
+                os.environ["KEEP_BROWSER_PROFILE_DIR"] = original_main
+            else:
+                os.environ.pop("KEEP_BROWSER_PROFILE_DIR", None)
+            if original_host is not None:
+                os.environ["KEEP_BROWSER_PROFILE_DIR_HOST"] = original_host
+            else:
+                os.environ.pop("KEEP_BROWSER_PROFILE_DIR_HOST", None)
+
     def test_build_notes_raises_when_no_inputs(self) -> None:
         with self.assertRaises(ValueError):
             build_notes([], None)
