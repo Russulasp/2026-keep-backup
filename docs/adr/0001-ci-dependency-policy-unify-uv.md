@@ -120,3 +120,28 @@
 
 - この ADR では CI の通知方式（メール送信）は変更しない
 - この ADR では E2E 導入範囲は変更しない
+
+## Update (container runtime alignment)
+
+- Date: 2026-02-25
+- Decision: **CI 実行基盤をリポジトリ内 Docker コンテナに寄せる**。
+
+### Why
+
+- Playwright 実行時の OS/ブラウザ依存差分を減らし、ローカル（Docker）と CI の再現性を上げる。
+- AGENTS の方針（CI は未ログイン前提のダミー運用、入口の集約）と整合しやすい。
+- 依存整合チェック（`uv lock --check`）はコンテナ内で継続できる。
+
+### Implemented scope
+
+- `no-profile-smoke-pr.yml`
+  - `docker compose build app`
+  - `docker compose run --rm app uv lock --check`
+  - `docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright-fixture`
+- `backup-ci.yml`
+  - 上記と同じコンテナ導線へ変更し、stdout 解析と通知は維持
+
+### Notes
+
+- CI はログイン済みプロファイルを持ち込まず、fixture smoke で stdout 要約とログ出力を検証する。
+- 依存ソースオブトゥルースは引き続き `pyproject.toml` + `uv.lock`。
