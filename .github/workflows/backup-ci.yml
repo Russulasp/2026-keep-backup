@@ -18,14 +18,20 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install package
-        run: python -m pip install -e .
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Lock consistency check
+        run: uv lock --check
+
+      - name: Sync dependencies from lock
+        run: uv sync --locked
 
       - name: Run backup and capture stdout
         id: run_backup
         run: |
           set -uo pipefail
-          python -m keep_backup.app --note "ci-smoke-note" | tee run_output.txt
+          uv run python -m keep_backup.app --note "ci-smoke-note" | tee run_output.txt
           exit_code=${PIPESTATUS[0]}
           summary_line=$(grep '^summary ' run_output.txt | tail -n1 || true)
           success=$(echo "$summary_line" | sed -n 's/.*success=\([^ ]*\).*/\1/p')
