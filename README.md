@@ -3,18 +3,14 @@
 Minimal starter for backing up Google Keep notes.
 
 ## Make commands (recommended entry)
-Run the common entry points via `make`:
+Run the common entry points via `make` (container-first):
 
 ```bash
+make docker-up
 make smoke
-```
-
-```bash
 make smoke-fixture
-```
-
-```bash
 make backup
+make docker-down
 ```
 
 ## 帰宅後にそのまま打てる実行順（迷わない版）
@@ -22,10 +18,8 @@ make backup
 
 ```bash
 cd /path/to/2026-keep-backup
-uv lock --check
-uv sync --locked
-uv run playwright install chromium
 cp --update=none .env.example .env
+make docker-up
 ```
 
 次に `.env` を開いて、ログイン済みプロファイルの実パスを設定します。
@@ -40,15 +34,7 @@ KEEP_BROWSER_PROFILE_DIR_CONTAINER=/keep-profile
 ```bash
 make smoke
 make smoke-fixture
-uv run python -m keep_backup.app --mode backup --note "買い物メモ"
-```
-
-Docker 経由で確認したい場合は、次の順で実行します。
-
-```bash
-make docker-up
-make docker-smoke
-make docker-down
+make backup
 ```
 
 Docker イメージ内の依存は `uv sync --locked` で `uv.lock` から解決されます。
@@ -90,7 +76,7 @@ single dependency source of truth.
 Run a Playwright startup smoke check without any login profile:
 
 ```bash
-uv run python -m keep_backup.app --mode smoke-playwright
+make smoke
 ```
 
 This mode verifies Chromium can launch and reach Google Keep, then prints the same CI-friendly summary lines.
@@ -99,13 +85,13 @@ This mode verifies Chromium can launch and reach Google Keep, then prints the sa
 Provide a small set of note bodies manually and write a minimal `keep.json`:
 
 ```bash
-uv run python -m keep_backup.app --mode backup --note "買い物メモ" --note "次の会議アジェンダ"
+docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode backup --note "買い物メモ" --note "次の会議アジェンダ"
 ```
 
 You can also load one note per line from a text file:
 
 ```bash
-uv run python -m keep_backup.app --mode backup --notes-file notes.txt
+docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode backup --notes-file notes.txt
 ```
 
 
@@ -128,14 +114,16 @@ KEEP_BROWSER_PROFILE_DIR_HOST=/home/yourname/.config/google-chrome/Profile 1
 KEEP_BROWSER_PROFILE_DIR_CONTAINER=/keep-profile
 ```
 
-3. Run smoke/backup as usual.
-   - ローカル (`uv run ...`) 実行時は、アプリが `KEEP_BROWSER_PROFILE_DIR`（互換用）または `KEEP_BROWSER_PROFILE_DIR_HOST` を読みます。
+3. Run smoke/backup as usual via Docker entry.
    - Docker (`docker compose ...`) 実行時は、`KEEP_BROWSER_PROFILE_DIR_HOST` を `KEEP_BROWSER_PROFILE_DIR_CONTAINER` に mount し、アプリへは `KEEP_BROWSER_PROFILE_DIR` としてコンテナ側パスを渡します。
 
 Notes:
 - `.env` is gitignored and must not be committed.
 - CI runs are expected to leave `KEEP_BROWSER_PROFILE_DIR` / `KEEP_BROWSER_PROFILE_DIR_HOST` unset, so no-profile smoke remains available.
 
+
+
+For temporary local experiments only, you may still use `uv run ...`, but it is not a standard operational entry.
 
 ## Runtime dependency policy
 Runtime dependencies are declared in `pyproject.toml` and locked in `uv.lock`.

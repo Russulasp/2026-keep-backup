@@ -27,19 +27,20 @@
 ## 3. 入口（実行コマンド）を増やさない
 - ローカルもCIも同じ入口を呼ぶ方針（CI導入後も同じ）
 - 入口は原則この3つだけに寄せる
-  - `backup_keep.bat`（Windows入口）
-  - `docker compose ...`（WSL入口）
-  - `make smoke` 相当（導入するなら。無理なら `scripts/smoke.sh` でも可）
+  - `backup_keep.bat`（Windows入口: Docker呼び出しのみ）
+  - `docker compose ...`（WSL入口: 正）
+  - `make smoke` 相当（Docker入口の薄いラッパ）
 
 —
 
 ## 4. 実行導線（Windows → WSL → Docker）
 - Windows：`backup_keep.bat` をダブルクリック
-- WSL：プロジェクトディレクトリに移動して、Dockerの同一コマンドを呼ぶだけ
-- Docker：Playwright実行環境を固定する
+- WSL：プロジェクトディレクトリに移動して、Dockerの同一コマンドを呼ぶだけ（ロジックは持たない）
+- Docker：Playwright実行環境を固定し、通常運用の実行主体とする
 
 ### ルール
 - バッチにはロジックを入れない（呼び出しだけ）
+- WSLにも実行ロジックを持ち込まない（Dockerコマンド呼び出しに限定）
 - 設定値はWSL側の `.env` や設定ファイルに寄せる（バッチに埋めない）
 
 —
