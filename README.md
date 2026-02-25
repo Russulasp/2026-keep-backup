@@ -171,20 +171,20 @@ Pull requests to `main` run `.github/workflows/no-profile-smoke-pr.yml`.
 
 What this workflow does:
 
-1. Runs `uv lock --check` and `uv sync --locked` for lock consistency.
-2. Installs Playwright Chromium in CI (`playwright install --with-deps chromium`) without using a logged-in profile.
-3. Executes `uv run python -m keep_backup.app --mode smoke-playwright`.
+1. Builds the repository `Dockerfile` via `docker compose build app` so CI uses the same Playwright-ready container base.
+2. Runs `docker compose run --rm app uv lock --check` inside the container for lock consistency.
+3. Executes `docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright-fixture` (no logged-in profile).
 4. Validates stdout contains a `summary ...` line with `success=true` and no `error=` line.
 5. Uploads `logs/run_*.log` as an artifact when the job fails.
 
-## Local verification (same smoke mode)
-You can reproduce CI smoke behavior locally:
+## Local verification (same container smoke mode)
+You can reproduce CI smoke behavior locally with Docker:
 
 ```bash
-uv lock --check
-uv sync --locked
-uv run playwright install chromium
-uv run python -m keep_backup.app --mode smoke-playwright
+make docker-up
+docker compose run --rm app uv lock --check
+docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright-fixture
+make docker-down
 ```
 
 Expected stdout:

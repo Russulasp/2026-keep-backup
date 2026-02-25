@@ -13,18 +13,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python and uv dependencies
-        uses: ./.github/actions/setup-python-uv
+      - name: Build app container
+        run: docker compose build app
 
-      - name: Install Playwright Chromium
-        run: uv run playwright install --with-deps chromium
+      - name: Check lock consistency in container
+        run: docker compose run --rm app uv lock --check
 
       - name: Run no-profile Playwright smoke (fixture)
         id: smoke
         run: |
           set -euo pipefail
 
-          uv run python -m keep_backup.app --mode smoke-playwright-fixture | tee run_output.txt
+          docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright-fixture | tee run_output.txt
           exit_code=${PIPESTATUS[0]}
 
           summary_line=$(grep '^summary ' run_output.txt | tail -n1 || true)
