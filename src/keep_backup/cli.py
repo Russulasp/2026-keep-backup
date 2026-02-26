@@ -7,13 +7,19 @@ from pathlib import Path
 MODE_BACKUP = "backup"
 MODE_SMOKE_PLAYWRIGHT = "smoke-playwright"
 MODE_SMOKE_PLAYWRIGHT_FIXTURE = "smoke-playwright-fixture"
+MODE_SMOKE_PLAYWRIGHT_LOGIN = "smoke-playwright-login"
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--mode",
-        choices=[MODE_BACKUP, MODE_SMOKE_PLAYWRIGHT, MODE_SMOKE_PLAYWRIGHT_FIXTURE],
+        choices=[
+            MODE_BACKUP,
+            MODE_SMOKE_PLAYWRIGHT,
+            MODE_SMOKE_PLAYWRIGHT_FIXTURE,
+            MODE_SMOKE_PLAYWRIGHT_LOGIN,
+        ],
         default=MODE_BACKUP,
         help="Execution mode. Use smoke-playwright for no-profile browser startup check.",
     )

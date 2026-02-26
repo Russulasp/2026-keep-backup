@@ -8,6 +8,7 @@ Run the common entry points via `make` (container-first):
 ```bash
 make docker-up
 make smoke
+make smoke-login
 make smoke-fixture
 make backup
 make docker-down
@@ -33,6 +34,7 @@ KEEP_BROWSER_PROFILE_DIR_CONTAINER=/keep-profile
 
 ```bash
 make smoke
+make smoke-login
 make smoke-fixture
 make backup
 ```
@@ -80,6 +82,15 @@ make smoke
 ```
 
 This mode verifies Chromium can launch and reach Google Keep, then prints the same CI-friendly summary lines.
+
+## Smoke run (logged-in profile required)
+Run a Playwright smoke that validates you are still logged in with your mounted profile:
+
+```bash
+make smoke-login
+```
+
+This mode fails when the final page URL indicates a redirect to Google Accounts (`https://accounts.google.com/...`) or when the loaded URL is outside `https://keep.google.com/...`.
 
 ## Thin vertical slice (manual notes)
 Provide a small set of note bodies manually and write a minimal `keep.json`:

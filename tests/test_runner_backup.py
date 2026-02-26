@@ -10,7 +10,12 @@ from io import StringIO
 from pathlib import Path
 
 from keep_backup.io import RunPaths
-from keep_backup.runner import build_notes, load_keep_profile_dir, run_backup_with_paths
+from keep_backup.runner import (
+    build_notes,
+    load_keep_profile_dir,
+    run_backup_with_paths,
+    run_playwright_keep_login_smoke,
+)
 
 
 class RunnerBackupTests(unittest.TestCase):
@@ -36,6 +41,24 @@ class RunnerBackupTests(unittest.TestCase):
     def test_build_notes_raises_when_no_inputs(self) -> None:
         with self.assertRaises(ValueError):
             build_notes([], None)
+
+    def test_run_playwright_keep_login_smoke_requires_profile_dir(self) -> None:
+        original_main = os.environ.pop("KEEP_BROWSER_PROFILE_DIR", None)
+        original_host = os.environ.pop("KEEP_BROWSER_PROFILE_DIR_HOST", None)
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                log_file = Path(tmp) / "logs" / "run.log"
+                with self.assertRaises(RuntimeError):
+                    run_playwright_keep_login_smoke(log_file)
+        finally:
+            if original_main is not None:
+                os.environ["KEEP_BROWSER_PROFILE_DIR"] = original_main
+            else:
+                os.environ.pop("KEEP_BROWSER_PROFILE_DIR", None)
+            if original_host is not None:
+                os.environ["KEEP_BROWSER_PROFILE_DIR_HOST"] = original_host
+            else:
+                os.environ.pop("KEEP_BROWSER_PROFILE_DIR_HOST", None)
 
     def test_run_backup_with_paths_writes_backup_and_logs(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
