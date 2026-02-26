@@ -20,7 +20,7 @@ jobs:
         run: docker compose run --rm app uv lock --check
 
 
-      - name: Run backup and capture stdout
+      - name: Run fixture smoke and capture stdout
         id: run_backup
         run: |
           set -uo pipefail
