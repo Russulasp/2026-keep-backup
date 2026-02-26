@@ -1,4 +1,4 @@
-name: no-profile-smoke-pr
+name: fixture-smoke-pr
 
 on:
   pull_request:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  smoke-no-profile:
+  smoke-fixture:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +19,7 @@ jobs:
       - name: Check lock consistency in container
         run: docker compose run --rm app uv lock --check
 
-      - name: Run no-profile Playwright smoke (fixture)
+      - name: Run Playwright fixture smoke (profile-independent)
         id: smoke
         run: |
           set -euo pipefail

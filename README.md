@@ -119,7 +119,7 @@ KEEP_BROWSER_PROFILE_DIR_CONTAINER=/keep-profile
 
 Notes:
 - `.env` is gitignored and must not be committed.
-- CI runs are expected to leave `KEEP_BROWSER_PROFILE_DIR` / `KEEP_BROWSER_PROFILE_DIR_HOST` unset, so no-profile smoke remains available.
+- CI runs are expected to leave `KEEP_BROWSER_PROFILE_DIR` / `KEEP_BROWSER_PROFILE_DIR_HOST` unset, so fixture smoke remains profile-independent in CI.
 
 
 
@@ -154,14 +154,14 @@ Configure the following secrets in CI:
 * `NOTIFY_EMAIL`: notification recipient
 
 
-## CI (PR) no-profile smoke
-Pull requests to `main` run `.github/workflows/no-profile-smoke-pr.yml`.
+## CI (PR) fixture smoke (profile-independent)
+Pull requests to `main` run `.github/workflows/no-profile-smoke-pr.yml` (workflow display name: `fixture-smoke-pr`).
 
 What this workflow does:
 
 1. Builds the repository `Dockerfile` via `docker compose build app` so CI uses the same Playwright-ready container base.
 2. Runs `docker compose run --rm app uv lock --check` inside the container for lock consistency.
-3. Executes `docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright-fixture` (no logged-in profile).
+3. Executes `docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright-fixture` (fixture-based, profile-independent).
 4. Validates stdout contains a `summary ...` line with `success=true` and no `error=` line.
 5. Uploads `logs/run_*.log` as an artifact when the job fails.
 
