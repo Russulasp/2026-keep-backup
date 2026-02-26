@@ -130,6 +130,8 @@ def run_playwright_smoke(
     profile_dir: Path | None = None,
     notes_selector: str | None = None,
     min_notes: int | None = None,
+    required_url_prefixes: list[str] | None = None,
+    forbidden_url_prefixes: list[str] | None = None,
 ) -> int:
     start = datetime.now()
     append_log(log_file, f"playwright smoke started start_time={start.isoformat()}")
@@ -147,6 +149,8 @@ def run_playwright_smoke(
                 url=url,
                 notes_selector=notes_selector,
                 min_notes=min_notes,
+                required_url_prefixes=required_url_prefixes,
+                forbidden_url_prefixes=forbidden_url_prefixes,
             )
         success = True
     except Exception as exc:  # noqa: BLE001
@@ -168,6 +172,21 @@ def run_playwright_smoke(
 def run_playwright_keep_smoke(log_file: Path) -> int:
     profile_dir = load_keep_profile_dir()
     return run_playwright_smoke(log_file, url="https://keep.google.com/", profile_dir=profile_dir)
+
+
+def run_playwright_keep_login_smoke(log_file: Path) -> int:
+    profile_dir = load_keep_profile_dir()
+    if not profile_dir:
+        raise RuntimeError(
+            "KEEP_BROWSER_PROFILE_DIR is not configured. Set KEEP_BROWSER_PROFILE_DIR_HOST in .env."
+        )
+    return run_playwright_smoke(
+        log_file,
+        url="https://keep.google.com/",
+        profile_dir=profile_dir,
+        required_url_prefixes=["https://keep.google.com/"],
+        forbidden_url_prefixes=["https://accounts.google.com/"],
+    )
 
 
 def run_playwright_fixture_smoke(log_file: Path, fixture_path: Path) -> int:
@@ -222,13 +241,26 @@ def _verify_playwright_page(
     url: str,
     notes_selector: str | None,
     min_notes: int | None,
+    required_url_prefixes: list[str] | None,
+    forbidden_url_prefixes: list[str] | None,
 ) -> int:
     response = page.goto(url, wait_until="domcontentloaded")
     page.wait_for_timeout(1000)
     title = page.title()
+    current_url = page.url
     status = response.status if response else "file"
     append_log(log_file, f"playwright smoke page_title={title}")
     append_log(log_file, f"playwright smoke http_status={status}")
+    append_log(log_file, f"playwright smoke page_url={current_url}")
+
+    if forbidden_url_prefixes:
+        for forbidden_prefix in forbidden_url_prefixes:
+            if current_url.startswith(forbidden_prefix):
+                raise RuntimeError(f"unexpected page_url for logged-in smoke: {current_url}")
+
+    if required_url_prefixes:
+        if not any(current_url.startswith(prefix) for prefix in required_url_prefixes):
+            raise RuntimeError(f"unexpected page_url: {current_url}")
 
     notes_count = 0
     if notes_selector:

@@ -2,9 +2,19 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from keep_backup.cli import MODE_SMOKE_PLAYWRIGHT, MODE_SMOKE_PLAYWRIGHT_FIXTURE, parse_args
+from keep_backup.cli import (
+    MODE_SMOKE_PLAYWRIGHT,
+    MODE_SMOKE_PLAYWRIGHT_FIXTURE,
+    MODE_SMOKE_PLAYWRIGHT_LOGIN,
+    parse_args,
+)
 from keep_backup.io import build_paths, load_dotenv_if_present
-from keep_backup.runner import run_backup, run_playwright_fixture_smoke, run_playwright_keep_smoke
+from keep_backup.runner import (
+    run_backup,
+    run_playwright_fixture_smoke,
+    run_playwright_keep_login_smoke,
+    run_playwright_keep_smoke,
+)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -18,6 +28,8 @@ def main(argv: list[str] | None = None) -> int:
         return run_playwright_keep_smoke(paths.log_file)
     if args.mode == MODE_SMOKE_PLAYWRIGHT_FIXTURE:
         return run_playwright_fixture_smoke(paths.log_file, args.fixture)
+    if args.mode == MODE_SMOKE_PLAYWRIGHT_LOGIN:
+        return run_playwright_keep_login_smoke(paths.log_file)
     return run_backup(args.note, args.notes_file)
 
 

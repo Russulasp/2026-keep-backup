@@ -1,7 +1,10 @@
-.PHONY: smoke smoke-fixture backup docker-up docker-down docker-smoke
+.PHONY: smoke smoke-login smoke-fixture backup docker-up docker-down docker-smoke
 
 smoke:
 	docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright
+
+smoke-login:
+	docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright-login
 
 smoke-fixture:
 	docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright-fixture
