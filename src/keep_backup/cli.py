@@ -4,10 +4,18 @@ import argparse
 from pathlib import Path
 
 
+# NOTE:
+# - Constant names express behavior clearly.
+# - String values are kept stable to avoid changing external entry points.
 MODE_BACKUP = "backup"
-MODE_SMOKE_PLAYWRIGHT = "smoke-playwright"
-MODE_SMOKE_PLAYWRIGHT_FIXTURE = "smoke-playwright-fixture"
-MODE_SMOKE_PLAYWRIGHT_LOGIN = "smoke-playwright-login"
+MODE_SMOKE_KEEP = "smoke-playwright"
+MODE_SMOKE_FIXTURE = "smoke-playwright-fixture"
+MODE_SMOKE_LOGIN = "smoke-playwright-login"
+
+# Backward-compatible aliases for existing imports.
+MODE_SMOKE_PLAYWRIGHT = MODE_SMOKE_KEEP
+MODE_SMOKE_PLAYWRIGHT_FIXTURE = MODE_SMOKE_FIXTURE
+MODE_SMOKE_PLAYWRIGHT_LOGIN = MODE_SMOKE_LOGIN
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -16,12 +24,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--mode",
         choices=[
             MODE_BACKUP,
-            MODE_SMOKE_PLAYWRIGHT,
-            MODE_SMOKE_PLAYWRIGHT_FIXTURE,
-            MODE_SMOKE_PLAYWRIGHT_LOGIN,
+            MODE_SMOKE_KEEP,
+            MODE_SMOKE_FIXTURE,
+            MODE_SMOKE_LOGIN,
         ],
         default=MODE_BACKUP,
-        help="Execution mode. Use smoke-playwright for no-profile browser startup check.",
+        help=(
+            "Execution mode: backup | smoke-playwright (Keep reachability) | "
+            "smoke-playwright-fixture (fixture-based smoke) | "
+            "smoke-playwright-login (logged-in profile validation)."
+        ),
     )
     parser.add_argument(
         "--note",
