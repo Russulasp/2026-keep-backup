@@ -189,6 +189,23 @@ def run_playwright_keep_login_smoke(log_file: Path) -> int:
     )
 
 
+def run_playwright_keep_probe(log_file: Path) -> int:
+    profile_dir = load_keep_profile_dir()
+    if not profile_dir:
+        raise RuntimeError(
+            "KEEP_BROWSER_PROFILE_DIR is not configured. Set KEEP_BROWSER_PROFILE_DIR_HOST in .env."
+        )
+    return run_playwright_smoke(
+        log_file,
+        url="https://keep.google.com/",
+        profile_dir=profile_dir,
+        notes_selector='[aria-label="Notes"] [role="listitem"]',
+        min_notes=1,
+        required_url_prefixes=["https://keep.google.com/"],
+        forbidden_url_prefixes=["https://accounts.google.com/"],
+    )
+
+
 def run_playwright_fixture_smoke(log_file: Path, fixture_path: Path) -> int:
     if not fixture_path.exists():
         raise FileNotFoundError(f"fixture not found: {fixture_path}")
