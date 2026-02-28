@@ -50,6 +50,7 @@ class RunnerSmokeVerifyTests(unittest.TestCase):
                 url="https://keep.google.com/",
                 notes_selector=None,
                 min_notes=None,
+                min_notes_error_label="notes",
                 required_url_prefixes=["https://keep.google.com/"],
                 forbidden_url_prefixes=["https://accounts.google.com/"],
             )
@@ -66,6 +67,7 @@ class RunnerSmokeVerifyTests(unittest.TestCase):
                     url="https://keep.google.com/",
                     notes_selector=None,
                     min_notes=None,
+                    min_notes_error_label="notes",
                     required_url_prefixes=["https://keep.google.com/"],
                     forbidden_url_prefixes=["https://accounts.google.com/"],
                 )
