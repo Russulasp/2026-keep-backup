@@ -92,6 +92,16 @@ make smoke-login
 
 This mode fails when the final page URL indicates a redirect to Google Accounts (`https://accounts.google.com/...`) or when the loaded URL is outside `https://keep.google.com/...`.
 
+## Smoke probe (logged-in DOM check)
+Run a logged-in probe to verify Keep note elements are present and countable:
+
+```bash
+make smoke-probe
+```
+
+This mode reuses the logged-in profile checks and also validates that at least one note list item exists in the Keep UI (`[aria-label="Notes"] [role="listitem"]`).
+Use it as a lightweight "can I access and read page elements?" check before implementing actual extraction logic.
+
 ## Thin vertical slice (manual notes)
 Provide a small set of note bodies manually and write a minimal `keep.json`:
 

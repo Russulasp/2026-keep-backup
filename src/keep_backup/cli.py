@@ -11,11 +11,13 @@ MODE_BACKUP = "backup"
 MODE_SMOKE_KEEP = "smoke-playwright"
 MODE_SMOKE_FIXTURE = "smoke-playwright-fixture"
 MODE_SMOKE_LOGIN = "smoke-playwright-login"
+MODE_SMOKE_PROBE = "smoke-playwright-probe"
 
 # Backward-compatible aliases for existing imports.
 MODE_SMOKE_PLAYWRIGHT = MODE_SMOKE_KEEP
 MODE_SMOKE_PLAYWRIGHT_FIXTURE = MODE_SMOKE_FIXTURE
 MODE_SMOKE_PLAYWRIGHT_LOGIN = MODE_SMOKE_LOGIN
+MODE_SMOKE_PLAYWRIGHT_PROBE = MODE_SMOKE_PROBE
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -27,12 +29,14 @@ def build_parser() -> argparse.ArgumentParser:
             MODE_SMOKE_KEEP,
             MODE_SMOKE_FIXTURE,
             MODE_SMOKE_LOGIN,
+            MODE_SMOKE_PROBE,
         ],
         default=MODE_BACKUP,
         help=(
             "Execution mode: backup | smoke-playwright (Keep reachability) | "
             "smoke-playwright-fixture (fixture-based smoke) | "
-            "smoke-playwright-login (logged-in profile validation)."
+            "smoke-playwright-login (logged-in profile validation) | "
+            "smoke-playwright-probe (logged-in DOM probe for note elements)."
         ),
     )
     parser.add_argument(
