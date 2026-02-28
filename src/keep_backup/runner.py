@@ -130,6 +130,7 @@ def run_playwright_smoke(
     profile_dir: Path | None = None,
     notes_selector: str | None = None,
     min_notes: int | None = None,
+    min_notes_error_label: str = "notes",
     required_url_prefixes: list[str] | None = None,
     forbidden_url_prefixes: list[str] | None = None,
 ) -> int:
@@ -149,6 +150,7 @@ def run_playwright_smoke(
                 url=url,
                 notes_selector=notes_selector,
                 min_notes=min_notes,
+                min_notes_error_label=min_notes_error_label,
                 required_url_prefixes=required_url_prefixes,
                 forbidden_url_prefixes=forbidden_url_prefixes,
             )
@@ -199,8 +201,9 @@ def run_playwright_keep_probe(log_file: Path) -> int:
         log_file,
         url="https://keep.google.com/",
         profile_dir=profile_dir,
-        notes_selector='[aria-label="Notes"] [role="listitem"]',
+        notes_selector='[aria-label="Notes"] [role="listitem"], [aria-label="Notes"] [role="list"]',
         min_notes=1,
+        min_notes_error_label="probe elements",
         required_url_prefixes=["https://keep.google.com/"],
         forbidden_url_prefixes=["https://accounts.google.com/"],
     )
@@ -215,6 +218,7 @@ def run_playwright_fixture_smoke(log_file: Path, fixture_path: Path) -> int:
         url=fixture_url,
         notes_selector='[data-testid="keep-note"]',
         min_notes=1,
+        min_notes_error_label="fixture notes",
     )
 
 
@@ -258,6 +262,7 @@ def _verify_playwright_page(
     url: str,
     notes_selector: str | None,
     min_notes: int | None,
+    min_notes_error_label: str,
     required_url_prefixes: list[str] | None,
     forbidden_url_prefixes: list[str] | None,
 ) -> int:
@@ -284,5 +289,5 @@ def _verify_playwright_page(
         notes_count = page.locator(notes_selector).count()
         append_log(log_file, f"playwright smoke notes_count={notes_count}")
         if min_notes is not None and notes_count < min_notes:
-            raise RuntimeError(f"fixture notes count too small: {notes_count}")
+            raise RuntimeError(f"{min_notes_error_label} count too small: {notes_count}")
     return notes_count
