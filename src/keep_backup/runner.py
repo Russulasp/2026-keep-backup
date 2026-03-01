@@ -44,6 +44,7 @@ def _print_summary(
     notes_count: int,
     duration: float,
     output: Path | str,
+    log_file: Path,
     error_message: str | None,
 ) -> None:
     summary = (
@@ -51,7 +52,8 @@ def _print_summary(
         f"success={format_bool(success)} "
         f"notes_count={notes_count} "
         f"duration_seconds={duration:.2f} "
-        f"output={output}"
+        f"output={output} "
+        f"log_file={log_file}"
     )
     print(summary)
     if error_message:
@@ -81,6 +83,7 @@ def _finalize_run(
         notes_count=notes_count,
         duration=duration,
         output=output,
+        log_file=log_file,
         error_message=error_message,
     )
 

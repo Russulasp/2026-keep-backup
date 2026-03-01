@@ -38,6 +38,7 @@ class RunnerFinalizeTests(unittest.TestCase):
             self.assertIn("summary success=true", summary)
             self.assertIn("notes_count=3", summary)
             self.assertIn("output=https://example.test", summary)
+            self.assertIn(f"log_file={log_file}", summary)
 
 
 if __name__ == "__main__":
