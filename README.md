@@ -101,6 +101,8 @@ make smoke-probe
 
 This mode reuses the logged-in profile checks and also validates that at least one note list item exists in the Keep UI (`[aria-label="Notes"] [role="listitem"]`).
 Use it as a lightweight "can I access and read page elements?" check before implementing actual extraction logic.
+`make smoke-probe` also stores the full terminal transcript at `logs/smoke_probe_latest.txt` and prints
+`codex_context_file=logs/smoke_probe_latest.txt` at the end, so you can copy/paste the output directly to Codex.
 
 ## Thin vertical slice (manual notes)
 Provide a small set of note bodies manually and write a minimal `keep.json`:
