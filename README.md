@@ -1,9 +1,13 @@
 # keep-backup
 
-Minimal starter for backing up Google Keep notes.
+Google Keep ノートのバックアップを取るための、コンテナ実行前提の最小構成です。
 
-## Make commands (recommended entry)
-Run the common entry points via `make` (container-first):
+## この README の前提
+- 標準の実行入口は **Docker / docker compose** です。
+- `make` は `docker compose ...` の薄いラッパとして使います。
+- `uv run ...` の直実行は一時検証向けで、通常運用の入口にはしません。
+
+## 推奨コマンド（通常運用）
 
 ```bash
 make docker-up
@@ -14,8 +18,9 @@ make backup
 make docker-down
 ```
 
-## 帰宅後にそのまま打てる実行順（迷わない版）
-まずはリポジトリ直下で以下を順番に実行してください。
+## 初回セットアップ〜実行（迷わない手順）
+
+リポジトリ直下で次を順番に実行します。
 
 ```bash
 cd /path/to/2026-keep-backup
@@ -23,14 +28,14 @@ cp --update=none .env.example .env
 make docker-up
 ```
 
-次に `.env` を開いて、ログイン済みプロファイルの実パスを設定します。
+次に `.env` を開き、ログイン済みプロファイルのパスを設定します。
 
 ```env
 KEEP_BROWSER_PROFILE_DIR_HOST=/home/yourname/.config/google-chrome/Profile 1
 KEEP_BROWSER_PROFILE_DIR_CONTAINER=/keep-profile
 ```
 
-ここまでできたら、以下の順番で確認すると迷いにくいです。
+設定後は、以下の順で動作確認すると分かりやすいです。
 
 ```bash
 make smoke
@@ -39,157 +44,128 @@ make smoke-fixture
 make backup
 ```
 
-Docker イメージ内の依存は `uv sync --locked` で `uv.lock` から解決されます。
-ローカルで `pyproject.toml` / `uv.lock` を更新した場合は、`make docker-up`（`--build` 付き）を再実行して
-イメージ内依存を同期してください。
+## Docker 実行の補足
+- `make docker-up` はローカル `Dockerfile` を build します。
+- イメージ build 時に `uv sync --locked` を実行し、`uv.lock` を唯一の依存ソースとして同期します。
+- コンテナ内コマンドは `uv run --no-sync` で実行されます。
 
-ログイン済みプロファイルを Docker で使う場合は、`.env` の
-`KEEP_BROWSER_PROFILE_DIR_HOST` に **WSL 側の絶対パス** を設定してください。
-`docker-compose.yml` では `KEEP_BROWSER_PROFILE_DIR_HOST` を bind mount のソースに使い、
-`KEEP_BROWSER_PROFILE_DIR_CONTAINER`（既定値 `/keep-profile`）をコンテナ側パスとして使います。
-さらにアプリには `KEEP_BROWSER_PROFILE_DIR` としてコンテナ側パスを渡すため、
-WSL と Docker のパス差分を意識せずに実行できます。
+`pyproject.toml` / `uv.lock` を更新した場合は、`make docker-up`（`--build` 付き）を再実行して、イメージ内の依存を同期してください。
 
-## Docker Compose (optional)
-If you want to keep a Playwright-ready container around, start it with:
+## ログイン済みプロファイルの扱い
+このプロジェクトでは、ログイン済み Chromium プロファイルを **外部資産** として扱います。
+リポジトリ内へコピーしないでください。
 
-```bash
-make docker-up
-```
-
-Stop it with:
-
-```bash
-make docker-down
-```
-
-You can also run the smoke check through Docker:
-
-```bash
-make docker-smoke
-```
-
-`make docker-up` now builds the local `Dockerfile`, which pins a Playwright-ready base image,
-installs `uv`, and runs `uv sync --locked` during image build. `make docker-smoke` runs the app
-through `uv run --no-sync`, so Docker execution also follows `pyproject.toml + uv.lock` as the
-single dependency source of truth.
-
-## Smoke run (no profile)
-Run a Playwright startup smoke check without any login profile:
-
-```bash
-make smoke
-```
-
-This mode verifies Chromium can launch and reach Google Keep, then prints the same CI-friendly summary lines.
-
-## Smoke run (logged-in profile required)
-Run a Playwright smoke that validates you are still logged in with your mounted profile:
-
-```bash
-make smoke-login
-```
-
-This mode fails when the final page URL indicates a redirect to Google Accounts (`https://accounts.google.com/...`) or when the loaded URL is outside `https://keep.google.com/...`.
-
-## Smoke probe (logged-in DOM check)
-Run a logged-in probe to verify Keep note elements are present and countable:
-
-```bash
-make smoke-probe
-```
-
-This mode reuses the logged-in profile checks and also validates that at least one note list item exists in the Keep UI (`[aria-label="Notes"] [role="listitem"]`).
-Use it as a lightweight "can I access and read page elements?" check before implementing actual extraction logic.
-`make smoke-probe` also stores the full terminal transcript at `logs/smoke_probe_latest.txt` and prints
-`codex_context_file=logs/smoke_probe_latest.txt` at the end, so you can copy/paste the output directly to Codex.
-
-## Thin vertical slice (manual notes)
-Provide a small set of note bodies manually and write a minimal `keep.json`:
-
-```bash
-docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode backup --note "買い物メモ" --note "次の会議アジェンダ"
-```
-
-You can also load one note per line from a text file:
-
-```bash
-docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode backup --notes-file notes.txt
-```
-
-
-## Logged-in browser profile configuration
-This project treats the logged-in Chromium profile as an **external asset**.
-Do not copy the profile folder into this repository.
-
-1. Copy the sample file and set your local value:
+### 設定
+1. `.env.example` を複製して `.env` を作成
 
 ```bash
 cp .env.example .env
 ```
 
-2. Set `KEEP_BROWSER_PROFILE_DIR_HOST` in `.env` to an absolute path on your machine (outside the repo). Optionally keep `KEEP_BROWSER_PROFILE_DIR_CONTAINER=/keep-profile`.
+2. `.env` にホスト側の絶対パスを設定
+   - `KEEP_BROWSER_PROFILE_DIR_HOST`: ホスト（WSL）側プロファイルの実パス
+   - `KEEP_BROWSER_PROFILE_DIR_CONTAINER`: コンテナ側マウント先（既定 `/keep-profile`）
 
-Example:
+例:
 
 ```env
 KEEP_BROWSER_PROFILE_DIR_HOST=/home/yourname/.config/google-chrome/Profile 1
 KEEP_BROWSER_PROFILE_DIR_CONTAINER=/keep-profile
 ```
 
-3. Run smoke/backup as usual via Docker entry.
-   - Docker (`docker compose ...`) 実行時は、`KEEP_BROWSER_PROFILE_DIR_HOST` を `KEEP_BROWSER_PROFILE_DIR_CONTAINER` に mount し、アプリへは `KEEP_BROWSER_PROFILE_DIR` としてコンテナ側パスを渡します。
+### マウントの挙動
+- `docker-compose.yml` では `KEEP_BROWSER_PROFILE_DIR_HOST` を bind mount のソースに使用します。
+- コンテナでは `KEEP_BROWSER_PROFILE_DIR_CONTAINER` をプロファイルパスとして使用します。
+- アプリには `KEEP_BROWSER_PROFILE_DIR` としてコンテナ側パスを渡すため、WSL と Docker のパス差分を意識せず実行できます。
 
-Notes:
-- `.env` is gitignored and must not be committed.
-- CI runs are expected to leave `KEEP_BROWSER_PROFILE_DIR` / `KEEP_BROWSER_PROFILE_DIR_HOST` unset, so fixture smoke remains profile-independent in CI.
+### 注意
+- `.env` は gitignore 対象です。コミットしないでください。
+- CI では `KEEP_BROWSER_PROFILE_DIR` / `KEEP_BROWSER_PROFILE_DIR_HOST` を未設定のまま実行し、プロファイル非依存で検証します。
 
+## 実行モード
 
+### 1) スモーク（プロファイル不要）
 
-For temporary local experiments only, you may still use `uv run ...`, but it is not a standard operational entry.
-
-## Runtime dependency policy
-Runtime dependencies are declared in `pyproject.toml` and locked in `uv.lock`.
-
-- Playwright (Python package) is included as a regular runtime dependency.
-- `uv run --with ...` is reserved for temporary local experiments and is not a standard local/CI execution path.
-- Browser binaries remain environment setup artifacts and are installed separately (`uv run playwright install chromium`).
-- Docker image builds also install dependencies from lock via `uv sync --locked`, and runtime commands use `uv run`.
-
-## CI summary and notifications
-The app prints a minimal stdout summary for CI consumption:
-
+```bash
+make smoke
 ```
+
+Chromium の起動と Google Keep への到達を確認し、CI で利用しやすい要約行を出力します。
+
+### 2) スモーク（ログイン必須）
+
+```bash
+make smoke-login
+```
+
+以下のいずれかに該当すると失敗します。
+- `https://accounts.google.com/...` へリダイレクトされた
+- 最終URLが `https://keep.google.com/...` 以外だった
+
+### 3) スモークプローブ（ログイン + DOM確認）
+
+```bash
+make smoke-probe
+```
+
+ログイン状態チェックに加えて、Keep のノート要素
+`[aria-label="Notes"] [role="listitem"]` が 1 件以上存在するかを検証します。
+
+また、端末出力を `logs/smoke_probe_latest.txt` に保存し、終了時に
+`codex_context_file=logs/smoke_probe_latest.txt` を出力します。
+
+### 4) 薄い縦切り（手入力ノートで backup）
+
+```bash
+docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode backup --note "買い物メモ" --note "次の会議アジェンダ"
+```
+
+1行1ノートのテキストファイルから渡すこともできます。
+
+```bash
+docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode backup --notes-file notes.txt
+```
+
+## 実行時依存ポリシー
+実行時依存は `pyproject.toml` と `uv.lock` で宣言・固定します。
+
+- Playwright（Python パッケージ）は通常の実行時依存に含める
+- `uv run --with ...` は一時検証用途に限定する
+- ブラウザバイナリは環境準備として別途導入（`uv run playwright install chromium`）
+- Docker image build でも `uv sync --locked` による lock 同期を行う
+
+## CI 向け要約出力
+アプリは CI 連携しやすい最小要約を stdout に出力します。
+
+```text
 summary success=true notes_count=123 duration_seconds=4.20 output=backups/2025-01-01/keep.json
 ```
 
-If an error occurs, an additional line is printed with the message:
+エラー時は次の行も出力します。
 
-```
+```text
 error=...
 ```
 
-CI can use these stdout lines directly for pass/fail checks and optional email notifications.
-Configure the following secrets in CI:
+必要であれば CI 側でこれらを使って pass/fail 判定や通知を行います。
 
-* `SMTP_USERNAME`: sender (Gmail address)
-* `SMTP_PASSWORD`: 16-character app password (label `github-actions`)
-* `NOTIFY_EMAIL`: notification recipient
+通知用シークレット例:
+- `SMTP_USERNAME`: 送信元（Gmail アドレス）
+- `SMTP_PASSWORD`: 16文字アプリパスワード（label: `github-actions`）
+- `NOTIFY_EMAIL`: 通知先アドレス
 
+## CI（PR）fixture smoke
+`main` 向け PR では `.github/workflows/no-profile-smoke-pr.yml`
+（workflow 名: `fixture-smoke-pr`）が実行されます。
 
-## CI (PR) fixture smoke (profile-independent)
-Pull requests to `main` run `.github/workflows/no-profile-smoke-pr.yml` (workflow display name: `fixture-smoke-pr`).
+この workflow で行うこと:
+1. `docker compose build app` でリポジトリ `Dockerfile` を build
+2. `docker compose run --rm app uv lock --check` で lock 整合性確認
+3. `docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright-fixture` を実行
+4. stdout に `summary ... success=true` があり、`error=` が無いことを検証
+5. 失敗時に `logs/run_*.log` を artifact として保存
 
-What this workflow does:
-
-1. Builds the repository `Dockerfile` via `docker compose build app` so CI uses the same Playwright-ready container base.
-2. Runs `docker compose run --rm app uv lock --check` inside the container for lock consistency.
-3. Executes `docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright-fixture` (fixture-based, profile-independent).
-4. Validates stdout contains a `summary ...` line with `success=true` and no `error=` line.
-5. Uploads `logs/run_*.log` as an artifact when the job fails.
-
-## Local verification (same container smoke mode)
-You can reproduce CI smoke behavior locally with Docker:
+## ローカルで CI 相当を再現
 
 ```bash
 make docker-up
@@ -198,16 +174,13 @@ docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode sm
 make docker-down
 ```
 
-Expected stdout:
-
+期待される stdout:
 - `summary success=true ...`
-- No `error=...` line
+- `error=...` が出ない
 
-## Future additions
-Planned additions (to be refined as the project matures):
-
-- Windows entry batch (`backup_keep.bat`) that only dispatches to WSL/Docker.
-- WSL entry that calls the shared Docker Compose command.
-- Logged-in browser profile handling for the real Keep scrape.
-- Standard vertical slice implementation (normal/archive/trash full backup).
-- Artifact capture for failures (`logs/artifacts/`).
+## 今後の追加予定
+- Windows 入口バッチ `backup_keep.bat`（WSL / Docker 呼び出しのみ）
+- WSL 入口（共通 `docker compose` コマンドの呼び出し）
+- Keep 本番取得向けのログイン済みプロファイル運用の強化
+- 標準縦切り（通常 / アーカイブ / ゴミ箱を含むフルバックアップ）
+- 失敗時 artifact 収集（`logs/artifacts/`）
