@@ -16,6 +16,9 @@ from keep_backup.io import (
 )
 
 
+PLAYWRIGHT_PAGE_SETTLE_MS = 10_000
+
+
 def load_keep_profile_dir() -> Path | None:
     raw_value = os.environ.get("KEEP_BROWSER_PROFILE_DIR", "").strip()
     if not raw_value:
@@ -270,7 +273,7 @@ def _verify_playwright_page(
     forbidden_url_prefixes: list[str] | None,
 ) -> int:
     response = page.goto(url, wait_until="domcontentloaded")
-    page.wait_for_timeout(1000)
+    page.wait_for_timeout(PLAYWRIGHT_PAGE_SETTLE_MS)
     title = page.title()
     current_url = page.url
     status = response.status if response else "file"
