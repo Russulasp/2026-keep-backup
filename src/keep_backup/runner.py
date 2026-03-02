@@ -17,6 +17,7 @@ from keep_backup.io import (
 
 
 PLAYWRIGHT_PAGE_SETTLE_MS = 10_000
+DOM_SNAPSHOT_MAX_CHARS = 200_000
 
 
 def load_keep_profile_dir() -> Path | None:
@@ -214,6 +215,73 @@ def run_playwright_keep_probe(log_file: Path) -> int:
         forbidden_url_prefixes=["https://accounts.google.com/"],
     )
 
+
+
+def _build_dom_snapshot_path(log_file: Path) -> Path:
+    artifacts_dir = log_file.parent / "artifacts"
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    stem = log_file.stem.replace("run_", "")
+    return artifacts_dir / f"dom_snapshot_{stem}.html"
+
+
+def _write_dom_snapshot(page: object, *, snapshot_path: Path, log_file: Path) -> None:
+    html = page.content()
+    original_len = len(html)
+    truncated = False
+    if original_len > DOM_SNAPSHOT_MAX_CHARS:
+        html = html[:DOM_SNAPSHOT_MAX_CHARS]
+        truncated = True
+    snapshot_path.write_text(html, encoding="utf-8")
+    append_log(
+        log_file,
+        f"playwright smoke dom_snapshot={snapshot_path} chars={len(html)} truncated={truncated} original_chars={original_len}",
+    )
+
+
+def run_playwright_keep_dom_smoke(log_file: Path) -> int:
+    profile_dir = load_keep_profile_dir()
+    if not profile_dir:
+        raise RuntimeError(
+            "KEEP_BROWSER_PROFILE_DIR is not configured. Set KEEP_BROWSER_PROFILE_DIR_HOST in .env."
+        )
+
+    start = datetime.now()
+    append_log(log_file, f"playwright smoke started start_time={start.isoformat()}")
+
+    success = False
+    notes_count = 0
+    error_message = None
+    snapshot_path = _build_dom_snapshot_path(log_file)
+    output = snapshot_path
+
+    try:
+        with _open_playwright_page(log_file, profile_dir) as page:
+            notes_count = _verify_playwright_page(
+                page,
+                log_file=log_file,
+                url="https://keep.google.com/",
+                notes_selector='[aria-label="Notes"] [role="listitem"], [aria-label="Notes"] [role="list"]',
+                min_notes=1,
+                min_notes_error_label="probe elements",
+                required_url_prefixes=["https://keep.google.com/"],
+                forbidden_url_prefixes=["https://accounts.google.com/"],
+            )
+            _write_dom_snapshot(page, snapshot_path=snapshot_path, log_file=log_file)
+        success = True
+    except Exception as exc:  # noqa: BLE001
+        error_message = str(exc)
+    finally:
+        _finalize_run(
+            log_file=log_file,
+            run_label="playwright smoke dom",
+            start=start,
+            success=success,
+            notes_count=notes_count,
+            output=output,
+            error_message=error_message,
+        )
+
+    return 0 if success else 1
 
 def run_playwright_fixture_smoke(log_file: Path, fixture_path: Path) -> int:
     if not fixture_path.exists():

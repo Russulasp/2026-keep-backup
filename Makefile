@@ -1,4 +1,4 @@
-.PHONY: smoke smoke-login smoke-probe smoke-fixture backup docker-up docker-down docker-smoke
+.PHONY: smoke smoke-login smoke-probe smoke-dom smoke-fixture backup docker-up docker-down docker-smoke
 
 smoke:
 	docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright
@@ -31,6 +31,10 @@ smoke-probe:
 	fi; \
 	echo "codex_context_file=$$out_file"; \
 	exit $$status
+
+
+smoke-dom:
+	docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright-dom
 
 smoke-fixture:
 	docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright-fixture
