@@ -17,3 +17,10 @@
 
 ### 3. 追加の証跡が必要になったら
 - `logs/artifacts/` にスクショを保存する運用を入れる（標準縦切り以降）
+### 4. DOM調査の取り方（原因究明用）
+- `make smoke-dom-investigate` を実行すると、以下を1つの転記ファイルにまとめる
+  - DOMスモークの標準出力
+  - 最新 `logs/run_*.log` の末尾40行
+  - 最新 `logs/artifacts/dom_snapshot_*.html` のパス
+- 転記ファイルは `logs/smoke_dom_investigate_latest.txt` に保存される
+- `notes_count=0` の時は、まず `notes_selector` と `ready_state`、`page_url` を確認する

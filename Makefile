@@ -1,4 +1,4 @@
-.PHONY: smoke smoke-login smoke-probe smoke-dom smoke-fixture backup docker-up docker-down docker-smoke
+.PHONY: smoke smoke-login smoke-probe smoke-dom smoke-dom-investigate smoke-fixture backup docker-up docker-down docker-smoke
 
 smoke:
 	docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright
@@ -35,6 +35,29 @@ smoke-probe:
 
 smoke-dom:
 	docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright-dom
+
+smoke-dom-investigate:
+	@mkdir -p logs
+	@out_file="logs/smoke_dom_investigate_latest.txt"; \
+	echo "# keep-backup smoke-dom investigation transcript" > "$$out_file"; \
+	echo "# command=make smoke-dom-investigate" >> "$$out_file"; \
+	echo "# started_at=$$(date -Iseconds)" >> "$$out_file"; \
+	docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright-dom >> "$$out_file" 2>&1; \
+	status=$$?; \
+	echo "# exit_code=$$status" >> "$$out_file"; \
+	latest_log="$$(ls -1t logs/run_*.log 2>/dev/null | head -n1)"; \
+	if [ -n "$$latest_log" ]; then \
+		echo "# latest_log=$$latest_log" >> "$$out_file"; \
+		echo "# latest_log_tail" >> "$$out_file"; \
+		tail -n 40 "$$latest_log" | sed 's/^/# log: /' >> "$$out_file"; \
+	fi; \
+	latest_dom="$$(ls -1t logs/artifacts/dom_snapshot_*.html 2>/dev/null | head -n1)"; \
+	if [ -n "$$latest_dom" ]; then \
+		echo "# latest_dom_snapshot=$$latest_dom" >> "$$out_file"; \
+	fi; \
+	cat "$$out_file"; \
+	echo "codex_context_file=$$out_file"; \
+	exit $$status
 
 smoke-fixture:
 	docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright-fixture
