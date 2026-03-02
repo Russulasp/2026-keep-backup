@@ -112,7 +112,9 @@ make smoke-probe
 `[aria-label="Notes"] [role="listitem"]` が 1 件以上存在するかを検証します。
 
 また、端末出力を `logs/smoke_probe_latest.txt` に保存し、終了時に
-`codex_context_file=logs/smoke_probe_latest.txt` を出力します。
+`codex_context_file=...` を出力します（`logs/` に書き込めない場合は `/tmp/keep-backup-smoke-probe-*.txt` にフォールバック）。
+
+さらに実行後に、最新の `logs/run_*.log` の末尾 20 行を transcript に追記します。
 
 ### 4) 薄い縦切り（手入力ノートで backup）
 
