@@ -116,7 +116,19 @@ make smoke-probe
 
 さらに実行後に、最新の `logs/run_*.log` の末尾 20 行を transcript に追記します。
 
-### 4) 薄い縦切り（手入力ノートで backup）
+### 4) DOMスナップショット付きスモーク（ログイン + DOM確認 + HTML保存）
+
+```bash
+make smoke-dom
+```
+
+`smoke-probe` と同じログイン/要素検証を行ったうえで、ページ HTML を
+`logs/artifacts/dom_snapshot_*.html` に保存します。
+
+- 取得サイズはデバッグ用途として最大 200,000 文字に制限（大きすぎる出力を防止）
+- summary の `output=` に保存先が出るため、CI や手元で追跡しやすい
+
+### 5) 薄い縦切り（手入力ノートで backup）
 
 ```bash
 docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode backup --note "買い物メモ" --note "次の会議アジェンダ"
