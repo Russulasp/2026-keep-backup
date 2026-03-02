@@ -35,6 +35,11 @@ class _FakePage:
     def title(self) -> str:
         return self._title
 
+    def evaluate(self, script: str) -> str:
+        if script == "document.readyState":
+            return "complete"
+        raise ValueError(f"unsupported script: {script}")
+
     def locator(self, _: str) -> _FakeLocator:
         return _FakeLocator(self._notes_count)
 

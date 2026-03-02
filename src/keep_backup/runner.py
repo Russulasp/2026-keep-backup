@@ -256,18 +256,27 @@ def run_playwright_keep_dom_smoke(log_file: Path) -> int:
 
     try:
         with _open_playwright_page(log_file, profile_dir) as page:
-            notes_count = _verify_playwright_page(
-                page,
-                log_file=log_file,
-                url="https://keep.google.com/",
-                notes_selector='[aria-label="Notes"] [role="listitem"], [aria-label="Notes"] [role="list"]',
-                min_notes=1,
-                min_notes_error_label="probe elements",
-                required_url_prefixes=["https://keep.google.com/"],
-                forbidden_url_prefixes=["https://accounts.google.com/"],
-            )
-            _write_dom_snapshot(page, snapshot_path=snapshot_path, log_file=log_file)
-        success = True
+            try:
+                notes_count = _verify_playwright_page(
+                    page,
+                    log_file=log_file,
+                    url="https://keep.google.com/",
+                    notes_selector='[aria-label="Notes"] [role="listitem"], [aria-label="Notes"] [role="list"]',
+                    min_notes=1,
+                    min_notes_error_label="probe elements",
+                    required_url_prefixes=["https://keep.google.com/"],
+                    forbidden_url_prefixes=["https://accounts.google.com/"],
+                )
+                success = True
+            except Exception as exc:  # noqa: BLE001
+                error_message = str(exc)
+            finally:
+                try:
+                    _write_dom_snapshot(page, snapshot_path=snapshot_path, log_file=log_file)
+                except Exception as snapshot_exc:  # noqa: BLE001
+                    append_log(log_file, f"playwright smoke dom_snapshot_error={snapshot_exc}")
+                    if error_message is None:
+                        error_message = f"failed to write dom snapshot: {snapshot_exc}"
     except Exception as exc:  # noqa: BLE001
         error_message = str(exc)
     finally:
@@ -348,6 +357,8 @@ def _verify_playwright_page(
     append_log(log_file, f"playwright smoke page_title={title}")
     append_log(log_file, f"playwright smoke http_status={status}")
     append_log(log_file, f"playwright smoke page_url={current_url}")
+    ready_state = page.evaluate("document.readyState")
+    append_log(log_file, f"playwright smoke ready_state={ready_state}")
 
     if forbidden_url_prefixes:
         for forbidden_prefix in forbidden_url_prefixes:
@@ -360,6 +371,7 @@ def _verify_playwright_page(
 
     notes_count = 0
     if notes_selector:
+        append_log(log_file, f"playwright smoke notes_selector={notes_selector}")
         notes_count = page.locator(notes_selector).count()
         append_log(log_file, f"playwright smoke notes_count={notes_count}")
         if min_notes is not None and notes_count < min_notes:
