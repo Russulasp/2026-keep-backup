@@ -25,6 +25,8 @@ make docker-down
 ```bash
 cd /path/to/2026-keep-backup
 cp --update=none .env.example .env
+# 任意: bind mount の所有者不一致を避けるために、WSLユーザーIDを反映
+printf "LOCAL_UID=%s\nLOCAL_GID=%s\n" "$(id -u)" "$(id -g)" >> .env
 make docker-up
 ```
 
@@ -77,6 +79,7 @@ KEEP_BROWSER_PROFILE_DIR_CONTAINER=/keep-profile
 - `docker-compose.yml` では `KEEP_BROWSER_PROFILE_DIR_HOST` を bind mount のソースに使用します。
 - コンテナでは `KEEP_BROWSER_PROFILE_DIR_CONTAINER` をプロファイルパスとして使用します。
 - アプリには `KEEP_BROWSER_PROFILE_DIR` としてコンテナ側パスを渡すため、WSL と Docker のパス差分を意識せず実行できます。
+- さらに `LOCAL_UID` / `LOCAL_GID` を指定すると、コンテナ実行ユーザーを WSL 側と揃えられます（`/app` の権限衝突回避）。
 
 ### 注意
 - `.env` は gitignore 対象です。コミットしないでください。

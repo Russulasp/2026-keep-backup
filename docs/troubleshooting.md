@@ -24,3 +24,12 @@
   - 最新 `logs/artifacts/dom_snapshot_*.html` のパス
 - 転記ファイルは `logs/smoke_dom_investigate_latest.txt` に保存される
 - `notes_count=0` の時は、まず `notes_selector` と `ready_state`、`page_url` を確認する
+
+
+### 5. `logs/... Permission denied` が出る
+- 症状: `cannot create logs/...: Permission denied`
+- 原因: bind mount 上で、コンテナが root 書き込みしたファイルを WSL ユーザーが更新できない
+- 対処:
+  1. `.env` に `LOCAL_UID=$(id -u)` と `LOCAL_GID=$(id -g)` を設定（`.env.example` 参照）
+  2. `make docker-down && make docker-up` で再作成
+  3. 既存の root 所有ファイルがある場合は `sudo chown -R $USER:$USER logs` で一度だけ修復
