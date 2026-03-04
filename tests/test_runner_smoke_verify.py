@@ -4,7 +4,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from keep_backup.runner import KEEP_PROBE_NOTES_SELECTOR, _verify_playwright_page
+from keep_backup.runner import (
+    KEEP_PROBE_NOTES_SELECTOR,
+    _collect_notes_with_infinite_scroll,
+    _verify_playwright_page,
+)
 
 
 class _FakeResponse:
@@ -21,10 +25,27 @@ class _FakeLocator:
 
 
 class _FakePage:
-    def __init__(self, *, url: str, title: str = "Keep", notes_count: int = 0) -> None:
+    class _FakeMouse:
+        def __init__(self, page: "_FakePage") -> None:
+            self._page = page
+
+        def wheel(self, _: int, __: int) -> None:
+            self._page._scroll_steps += 1
+
+    def __init__(
+        self,
+        *,
+        url: str,
+        title: str = "Keep",
+        notes_count: int = 0,
+        notes_growth: list[int] | None = None,
+    ) -> None:
         self.url = url
         self._title = title
         self._notes_count = notes_count
+        self._notes_growth = notes_growth or []
+        self._scroll_steps = 0
+        self.mouse = self._FakeMouse(self)
 
     def goto(self, url: str, wait_until: str) -> _FakeResponse:  # noqa: ARG002
         return _FakeResponse(status=200)
@@ -41,6 +62,9 @@ class _FakePage:
         raise ValueError(f"unsupported script: {script}")
 
     def locator(self, _: str) -> _FakeLocator:
+        if self._notes_growth:
+            index = min(self._scroll_steps, len(self._notes_growth) - 1)
+            return _FakeLocator(self._notes_growth[index])
         return _FakeLocator(self._notes_count)
 
 
@@ -82,6 +106,22 @@ class RunnerSmokeVerifyTests(unittest.TestCase):
                     required_url_prefixes=["https://keep.google.com/"],
                     forbidden_url_prefixes=["https://accounts.google.com/"],
                 )
+
+    def test_collect_notes_scrolls_until_count_stabilizes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            log_file = Path(tmp) / "logs" / "run.log"
+            page = _FakePage(
+                url="https://keep.google.com/u/0/",
+                notes_growth=[2, 5, 8, 8, 8],
+            )
+
+            notes_count = _collect_notes_with_infinite_scroll(
+                page,
+                log_file=log_file,
+                notes_selector='[data-testid="keep-note"]',
+            )
+
+            self.assertEqual(notes_count, 8)
 
 
 if __name__ == "__main__":

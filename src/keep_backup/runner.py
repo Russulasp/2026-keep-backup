@@ -18,6 +18,9 @@ from keep_backup.io import (
 
 PLAYWRIGHT_PAGE_SETTLE_MS = 10_000
 DOM_SNAPSHOT_MAX_CHARS = 200_000
+INFINITE_SCROLL_MAX_ITERATIONS = 12
+INFINITE_SCROLL_WAIT_MS = 1_000
+INFINITE_SCROLL_STABLE_PASSES = 2
 KEEP_PROBE_NOTES_SELECTOR = ", ".join(
     [
         '[aria-label="Notes"] [role="listitem"]',
@@ -382,8 +385,44 @@ def _verify_playwright_page(
     notes_count = 0
     if notes_selector:
         append_log(log_file, f"playwright smoke notes_selector={notes_selector}")
-        notes_count = page.locator(notes_selector).count()
+        notes_count = _collect_notes_with_infinite_scroll(
+            page,
+            log_file=log_file,
+            notes_selector=notes_selector,
+        )
         append_log(log_file, f"playwright smoke notes_count={notes_count}")
         if min_notes is not None and notes_count < min_notes:
             raise RuntimeError(f"{min_notes_error_label} count too small: {notes_count}")
     return notes_count
+
+
+def _collect_notes_with_infinite_scroll(
+    page: object,
+    *,
+    log_file: Path,
+    notes_selector: str,
+) -> int:
+    highest_count = page.locator(notes_selector).count()
+    stable_passes = 0
+
+    for iteration in range(1, INFINITE_SCROLL_MAX_ITERATIONS + 1):
+        page.mouse.wheel(0, 2_000)
+        page.wait_for_timeout(INFINITE_SCROLL_WAIT_MS)
+        latest_count = page.locator(notes_selector).count()
+
+        if latest_count > highest_count:
+            highest_count = latest_count
+            stable_passes = 0
+        else:
+            stable_passes += 1
+
+        append_log(
+            log_file,
+            "playwright smoke scroll "
+            f"iteration={iteration} notes_count={latest_count} stable_passes={stable_passes}",
+        )
+
+        if stable_passes >= INFINITE_SCROLL_STABLE_PASSES:
+            break
+
+    return highest_count
