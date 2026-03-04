@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from keep_backup.runner import _verify_playwright_page
+from keep_backup.runner import KEEP_PROBE_NOTES_SELECTOR, _verify_playwright_page
 
 
 class _FakeResponse:
@@ -45,6 +45,12 @@ class _FakePage:
 
 
 class RunnerSmokeVerifyTests(unittest.TestCase):
+    def test_probe_selector_contains_localized_fallbacks(self) -> None:
+        self.assertIn('[aria-label="Notes"] [role="listitem"]', KEEP_PROBE_NOTES_SELECTOR)
+        self.assertIn('[aria-label="メモ"] [role="listitem"]', KEEP_PROBE_NOTES_SELECTOR)
+        self.assertIn('[aria-label="Select note"]', KEEP_PROBE_NOTES_SELECTOR)
+        self.assertIn('[aria-label="メモを選択"]', KEEP_PROBE_NOTES_SELECTOR)
+
     def test_verify_accepts_keep_url_when_required(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             log_file = Path(tmp) / "logs" / "run.log"

@@ -18,6 +18,16 @@ from keep_backup.io import (
 
 PLAYWRIGHT_PAGE_SETTLE_MS = 10_000
 DOM_SNAPSHOT_MAX_CHARS = 200_000
+KEEP_PROBE_NOTES_SELECTOR = ", ".join(
+    [
+        '[aria-label="Notes"] [role="listitem"]',
+        '[aria-label="Notes"] [role="list"]',
+        '[aria-label="メモ"] [role="listitem"]',
+        '[aria-label="メモ"] [role="list"]',
+        '[aria-label="Select note"]',
+        '[aria-label="メモを選択"]',
+    ]
+)
 
 
 def load_keep_profile_dir() -> Path | None:
@@ -208,7 +218,7 @@ def run_playwright_keep_probe(log_file: Path) -> int:
         log_file,
         url="https://keep.google.com/",
         profile_dir=profile_dir,
-        notes_selector='[aria-label="Notes"] [role="listitem"], [aria-label="Notes"] [role="list"]',
+        notes_selector=KEEP_PROBE_NOTES_SELECTOR,
         min_notes=1,
         min_notes_error_label="probe elements",
         required_url_prefixes=["https://keep.google.com/"],
@@ -261,7 +271,7 @@ def run_playwright_keep_dom_smoke(log_file: Path) -> int:
                     page,
                     log_file=log_file,
                     url="https://keep.google.com/",
-                    notes_selector='[aria-label="Notes"] [role="listitem"], [aria-label="Notes"] [role="list"]',
+                    notes_selector=KEEP_PROBE_NOTES_SELECTOR,
                     min_notes=1,
                     min_notes_error_label="probe elements",
                     required_url_prefixes=["https://keep.google.com/"],
