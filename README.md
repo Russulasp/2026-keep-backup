@@ -131,13 +131,19 @@ make smoke-dom
 - 取得サイズはデバッグ用途として最大 200,000 文字に制限（大きすぎる出力を防止）
 - summary の `output=` に保存先が出るため、CI や手元で追跡しやすい
 
-### 5) 薄い縦切り（手入力ノートで backup）
+### 5) backup 実行（Keep取得 / 手入力どちらも可）
+
+入力を指定しない場合、ログイン済みプロファイルを使って Keep からノートを取得します。
+
+```bash
+docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode backup
+```
+
+手入力ノートで動作確認したい場合は、従来どおり `--note` / `--notes-file` も使えます。
 
 ```bash
 docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode backup --note "買い物メモ" --note "次の会議アジェンダ"
 ```
-
-1行1ノートのテキストファイルから渡すこともできます。
 
 ```bash
 docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode backup --notes-file notes.txt

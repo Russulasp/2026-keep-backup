@@ -124,7 +124,10 @@ def run_backup_with_paths(
     error_message = None
 
     try:
-        notes = build_notes(note_bodies, notes_file)
+        if note_bodies or notes_file:
+            notes = build_notes(note_bodies, notes_file)
+        else:
+            notes = _collect_keep_notes_for_backup(paths.log_file)
         write_backup(paths.backup_file, start, notes)
         success = True
     except Exception as exc:  # noqa: BLE001
@@ -316,6 +319,123 @@ def run_playwright_fixture_smoke(log_file: Path, fixture_path: Path) -> int:
         min_notes=1,
         min_notes_error_label="fixture notes",
     )
+
+
+def _collect_keep_notes_for_backup(log_file: Path) -> list[dict[str, str]]:
+    profile_dir = load_keep_profile_dir()
+    if not profile_dir:
+        raise RuntimeError(
+            "KEEP_BROWSER_PROFILE_DIR is not configured. Set KEEP_BROWSER_PROFILE_DIR_HOST in .env."
+        )
+
+    append_log(log_file, "backup source=keep")
+    with _open_playwright_page(log_file, profile_dir) as page:
+        _verify_playwright_page(
+            page,
+            log_file=log_file,
+            url="https://keep.google.com/",
+            notes_selector=KEEP_PROBE_NOTES_SELECTOR,
+            min_notes=1,
+            min_notes_error_label="backup notes",
+            required_url_prefixes=["https://keep.google.com/"],
+            forbidden_url_prefixes=["https://accounts.google.com/"],
+        )
+        notes = _extract_note_payloads(page)
+    append_log(log_file, f"backup extracted_notes={len(notes)}")
+    if not notes:
+        raise RuntimeError("failed to extract notes from Keep page")
+    return notes
+
+
+def _extract_note_payloads(page: object) -> list[dict[str, str]]:
+    raw_notes = page.evaluate(
+        """
+        () => {
+          const cardSelectors = [
+            '[aria-label="Notes"] [role="listitem"]',
+            '[aria-label="メモ"] [role="listitem"]',
+            '[role="listitem"]',
+          ];
+
+          const cards = [];
+          for (const selector of cardSelectors) {
+            for (const element of document.querySelectorAll(selector)) {
+              if (!cards.includes(element)) {
+                cards.push(element);
+              }
+            }
+          }
+
+          const extractText = (root, selectors) => {
+            for (const selector of selectors) {
+              const found = root.querySelector(selector);
+              if (!found) continue;
+              const text = (found.innerText || found.textContent || '').trim();
+              if (text) return text;
+            }
+            return '';
+          };
+
+          const notes = [];
+          for (const card of cards) {
+            const ariaLabel = (card.getAttribute('aria-label') || '').trim();
+            const title = extractText(card, [
+              '[aria-label="Title"]',
+              '[aria-label="タイトル"]',
+              '[placeholder="Title"]',
+              '[placeholder="タイトル"]',
+              '[data-testid="note-title"]',
+            ]);
+            let body = extractText(card, [
+              '[aria-label="Note"]',
+              '[aria-label="メモ"]',
+              '[data-testid="note-content"]',
+              '[role="textbox"]',
+            ]);
+
+            if (!body) {
+              body = (card.innerText || card.textContent || '').trim();
+            }
+
+            let normalizedTitle = title;
+            let normalizedBody = body;
+
+            if (!normalizedTitle && ariaLabel.includes('\n')) {
+              const [firstLine, ...rest] = ariaLabel
+                .split('\n')
+                .map((line) => line.trim())
+                .filter(Boolean);
+              normalizedTitle = firstLine || '';
+              if (!normalizedBody && rest.length > 0) {
+                normalizedBody = rest.join('\n');
+              }
+            }
+
+            if (!normalizedBody && ariaLabel) {
+              normalizedBody = ariaLabel;
+            }
+
+            notes.push({
+              title: normalizedTitle,
+              body: normalizedBody,
+            });
+          }
+          return notes;
+        }
+        """
+    )
+
+    notes: list[dict[str, str]] = []
+    for item in raw_notes:
+        title = str(item.get("title", "")).strip()
+        body = str(item.get("body", "")).strip()
+        if not title and not body:
+            continue
+        note: dict[str, str] = {"body": body}
+        if title:
+            note["title"] = title
+        notes.append(note)
+    return notes
 
 
 def _load_sync_playwright():
