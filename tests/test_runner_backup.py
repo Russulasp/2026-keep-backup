@@ -23,8 +23,10 @@ from keep_backup.runner import (
 class _FakeExtractPage:
     def __init__(self, notes: list[dict[str, str]]) -> None:
         self._notes = notes
+        self.last_script = ""
 
-    def evaluate(self, _: str) -> list[dict[str, str]]:
+    def evaluate(self, script: str) -> list[dict[str, str]]:
+        self.last_script = script
         return self._notes
 
 
@@ -84,6 +86,13 @@ class RunnerBackupTests(unittest.TestCase):
         self.assertEqual(notes[1], {"body": "body-only"})
         self.assertEqual(notes[2], {"title": "ignored", "body": ""})
         self.assertEqual(len(notes), 3)
+
+    def test_extract_note_payloads_uses_escaped_newline_in_eval_script(self) -> None:
+        page = _FakeExtractPage([])
+        _extract_note_payloads(page)
+        self.assertIn("ariaLabel.includes('\\n')", page.last_script)
+        self.assertIn(".split('\\n')", page.last_script)
+        self.assertIn("rest.join('\\n')", page.last_script)
 
     def test_run_backup_with_paths_writes_backup_and_logs(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

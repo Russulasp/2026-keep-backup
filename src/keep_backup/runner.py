@@ -400,14 +400,14 @@ def _extract_note_payloads(page: object) -> list[dict[str, str]]:
             let normalizedTitle = title;
             let normalizedBody = body;
 
-            if (!normalizedTitle && ariaLabel.includes('\n')) {
+            if (!normalizedTitle && ariaLabel.includes('\\n')) {
               const [firstLine, ...rest] = ariaLabel
-                .split('\n')
+                .split('\\n')
                 .map((line) => line.trim())
                 .filter(Boolean);
               normalizedTitle = firstLine || '';
               if (!normalizedBody && rest.length > 0) {
-                normalizedBody = rest.join('\n');
+                normalizedBody = rest.join('\\n');
               }
             }
 
