@@ -354,6 +354,8 @@ def _extract_note_payloads(page: object) -> list[dict[str, str]]:
           const cardSelectors = [
             '[aria-label="Notes"] [role="listitem"]',
             '[aria-label="メモ"] [role="listitem"]',
+            '[aria-label="Select note"]',
+            '[aria-label="メモを選択"]',
             '[role="listitem"]',
           ];
 

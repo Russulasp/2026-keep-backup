@@ -94,6 +94,12 @@ class RunnerBackupTests(unittest.TestCase):
         self.assertIn(".split('\\n')", page.last_script)
         self.assertIn("rest.join('\\n')", page.last_script)
 
+    def test_extract_note_payloads_supports_select_note_card_selector(self) -> None:
+        page = _FakeExtractPage([])
+        _extract_note_payloads(page)
+        self.assertIn('[aria-label="Select note"]', page.last_script)
+        self.assertIn('[aria-label="メモを選択"]', page.last_script)
+
     def test_run_backup_with_paths_writes_backup_and_logs(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
