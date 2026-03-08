@@ -16,7 +16,9 @@ from keep_backup.runner import (
     build_notes,
     load_keep_profile_dir,
     run_backup_with_paths,
+    run_parse_dom_with_paths,
     run_playwright_keep_login_smoke,
+    _resolve_dom_snapshot_input,
 )
 
 
@@ -199,6 +201,70 @@ class RunnerBackupTests(unittest.TestCase):
             self.assertIn("summary success=false", output)
             self.assertIn("error=notes file not found", output)
             self.assertTrue(paths.log_file.exists())
+
+    def test_run_backup_with_paths_manual_input_logs_dom_snapshot_skipped(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            start = datetime(2026, 1, 1, 12, 0, 0)
+            paths = RunPaths(
+                backup_dir=tmp_path / "backups" / "2026-01-01",
+                backup_file=tmp_path / "backups" / "2026-01-01" / "keep.json",
+                log_file=tmp_path / "logs" / "run_2026-01-01_120000.log",
+            )
+
+            exit_code = run_backup_with_paths(["manual"], None, paths, start)
+            self.assertEqual(exit_code, 0)
+            log_text = paths.log_file.read_text(encoding="utf-8")
+            self.assertIn("backup dom_snapshot_skipped=true reason=manual_input", log_text)
+
+    def test_resolve_dom_snapshot_input_uses_latest_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            cwd = Path.cwd()
+            try:
+                os.chdir(tmp_path)
+                artifacts_dir = Path("logs") / "artifacts"
+                artifacts_dir.mkdir(parents=True, exist_ok=True)
+                first = artifacts_dir / "dom_snapshot_2026-01-01_010101.html"
+                second = artifacts_dir / "dom_snapshot_2026-01-02_020202.html"
+                first.write_text("<html></html>", encoding="utf-8")
+                second.write_text("<html></html>", encoding="utf-8")
+                resolved = _resolve_dom_snapshot_input(None)
+            finally:
+                os.chdir(cwd)
+            self.assertEqual(resolved.name, second.name)
+
+    def test_run_parse_dom_with_paths_writes_backup(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            start = datetime(2026, 1, 1, 12, 0, 0)
+            paths = RunPaths(
+                backup_dir=tmp_path / "backups" / "2026-01-01",
+                backup_file=tmp_path / "backups" / "2026-01-01" / "keep.json",
+                log_file=tmp_path / "logs" / "run_2026-01-01_120000.log",
+            )
+            dom_input = tmp_path / "logs" / "artifacts" / "dom_snapshot_x.html"
+            dom_input.parent.mkdir(parents=True, exist_ok=True)
+            dom_input.write_text("<html></html>", encoding="utf-8")
+            dom_output = tmp_path / "backups" / "parsed.json"
+
+            original_extractor = runner_module._extract_notes_from_dom_snapshot
+            runner_module._extract_notes_from_dom_snapshot = lambda _dom, *, log_file: [
+                {"title": "from-dom", "body": "parsed"}
+            ]
+            try:
+                exit_code = run_parse_dom_with_paths(
+                    paths=paths,
+                    start=start,
+                    dom_input=dom_input,
+                    dom_output=dom_output,
+                )
+            finally:
+                runner_module._extract_notes_from_dom_snapshot = original_extractor
+
+            self.assertEqual(exit_code, 0)
+            payload = json.loads(dom_output.read_text(encoding="utf-8"))
+            self.assertEqual(payload["notes"], [{"title": "from-dom", "body": "parsed"}])
 
 
 if __name__ == "__main__":

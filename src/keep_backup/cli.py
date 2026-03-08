@@ -13,6 +13,7 @@ MODE_SMOKE_FIXTURE = "smoke-playwright-fixture"
 MODE_SMOKE_LOGIN = "smoke-playwright-login"
 MODE_SMOKE_PROBE = "smoke-playwright-probe"
 MODE_SMOKE_DOM = "smoke-playwright-dom"
+MODE_PARSE_DOM = "parse-dom"
 
 # Backward-compatible aliases for existing imports.
 MODE_SMOKE_PLAYWRIGHT = MODE_SMOKE_KEEP
@@ -20,6 +21,7 @@ MODE_SMOKE_PLAYWRIGHT_FIXTURE = MODE_SMOKE_FIXTURE
 MODE_SMOKE_PLAYWRIGHT_LOGIN = MODE_SMOKE_LOGIN
 MODE_SMOKE_PLAYWRIGHT_PROBE = MODE_SMOKE_PROBE
 MODE_SMOKE_PLAYWRIGHT_DOM = MODE_SMOKE_DOM
+MODE_PARSE_DOM_SNAPSHOT = MODE_PARSE_DOM
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -33,6 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
             MODE_SMOKE_LOGIN,
             MODE_SMOKE_PROBE,
             MODE_SMOKE_DOM,
+            MODE_PARSE_DOM,
         ],
         default=MODE_BACKUP,
         help=(
@@ -40,7 +43,8 @@ def build_parser() -> argparse.ArgumentParser:
             "smoke-playwright-fixture (fixture-based smoke) | "
             "smoke-playwright-login (logged-in profile validation) | "
             "smoke-playwright-probe (logged-in DOM probe for note elements) | "
-            "smoke-playwright-dom (logged-in DOM probe + HTML snapshot artifact)."
+            "smoke-playwright-dom (logged-in DOM probe + HTML snapshot artifact) | "
+            "parse-dom (parse saved DOM snapshot HTML into JSON)."
         ),
     )
     parser.add_argument(
@@ -59,6 +63,22 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=Path("fixtures/keep_mock.html"),
         help="Path to a mock Keep HTML fixture for Playwright smoke.",
+    )
+    parser.add_argument(
+        "--dom-input",
+        type=Path,
+        help=(
+            "Path to a saved DOM snapshot HTML file. "
+            "Used by --mode parse-dom; defaults to latest logs/artifacts/dom_snapshot_*.html."
+        ),
+    )
+    parser.add_argument(
+        "--dom-output",
+        type=Path,
+        help=(
+            "Output JSON path for --mode parse-dom. "
+            "Defaults to backups/YYYY-MM-DD/keep_from_dom.json."
+        ),
     )
     return parser
 

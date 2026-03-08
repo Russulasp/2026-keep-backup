@@ -21,6 +21,7 @@ DOM_SNAPSHOT_MAX_CHARS = 200_000
 INFINITE_SCROLL_MAX_ITERATIONS = 12
 INFINITE_SCROLL_WAIT_MS = 1_000
 INFINITE_SCROLL_STABLE_PASSES = 2
+DOM_PARSED_OUTPUT_FILE_NAME = "keep_from_dom.json"
 KEEP_PROBE_NOTES_SELECTOR = ", ".join(
     [
         '[aria-label="Notes"] [role="listitem"]',
@@ -125,6 +126,8 @@ def run_backup_with_paths(
 
     try:
         if note_bodies or notes_file:
+            append_log(paths.log_file, "backup source=manual")
+            append_log(paths.log_file, "backup dom_snapshot_skipped=true reason=manual_input")
             notes = build_notes(note_bodies, notes_file)
         else:
             notes = _collect_keep_notes_for_backup(paths.log_file)
@@ -140,6 +143,44 @@ def run_backup_with_paths(
             success=success,
             notes_count=len(notes),
             output=paths.backup_file,
+            error_message=error_message,
+        )
+
+    return 0 if success else 1
+
+
+def run_parse_dom_with_paths(
+    *,
+    paths: RunPaths,
+    start: datetime,
+    dom_input: Path | None,
+    dom_output: Path | None,
+) -> int:
+    append_log(paths.log_file, f"parse-dom started start_time={start.isoformat()}")
+
+    success = False
+    notes: list[dict[str, str]] = []
+    error_message = None
+    output_path = dom_output or (paths.backup_dir / DOM_PARSED_OUTPUT_FILE_NAME)
+
+    try:
+        snapshot_path = _resolve_dom_snapshot_input(dom_input)
+        append_log(paths.log_file, f"parse-dom input={snapshot_path}")
+        notes = _extract_notes_from_dom_snapshot(snapshot_path, log_file=paths.log_file)
+        if not notes:
+            raise RuntimeError("failed to extract notes from DOM snapshot")
+        write_backup(output_path, start, notes)
+        success = True
+    except Exception as exc:  # noqa: BLE001
+        error_message = str(exc)
+    finally:
+        _finalize_run(
+            log_file=paths.log_file,
+            run_label="parse-dom",
+            start=start,
+            success=success,
+            notes_count=len(notes),
+            output=output_path,
             error_message=error_message,
         )
 
@@ -340,6 +381,8 @@ def _collect_keep_notes_for_backup(log_file: Path) -> list[dict[str, str]]:
             required_url_prefixes=["https://keep.google.com/"],
             forbidden_url_prefixes=["https://accounts.google.com/"],
         )
+        snapshot_path = _build_dom_snapshot_path(log_file)
+        _write_dom_snapshot(page, snapshot_path=snapshot_path, log_file=log_file)
         notes = _extract_note_payloads(page)
     append_log(log_file, f"backup extracted_notes={len(notes)}")
     if not notes:
@@ -474,6 +517,39 @@ def _extract_note_payloads(page: object) -> list[dict[str, str]]:
         if title:
             note["title"] = title
         notes.append(note)
+    return notes
+
+
+def _resolve_dom_snapshot_input(dom_input: Path | None) -> Path:
+    if dom_input is not None:
+        if not dom_input.exists():
+            raise FileNotFoundError(f"dom snapshot not found: {dom_input}")
+        return dom_input
+
+    artifacts_dir = Path("logs") / "artifacts"
+    candidates = sorted(artifacts_dir.glob("dom_snapshot_*.html"), key=lambda path: path.stat().st_mtime)
+    if not candidates:
+        raise FileNotFoundError(
+            "dom snapshot not found: logs/artifacts/dom_snapshot_*.html"
+        )
+    return candidates[-1]
+
+
+def _extract_notes_from_dom_snapshot(dom_snapshot_path: Path, *, log_file: Path) -> list[dict[str, str]]:
+    snapshot_url = dom_snapshot_path.resolve().as_uri()
+    with _open_playwright_page(log_file, profile_dir=None) as page:
+        _verify_playwright_page(
+            page,
+            log_file=log_file,
+            url=snapshot_url,
+            notes_selector=None,
+            min_notes=None,
+            min_notes_error_label="dom notes",
+            required_url_prefixes=["file://"],
+            forbidden_url_prefixes=None,
+        )
+        notes = _extract_note_payloads(page)
+    append_log(log_file, f"parse-dom extracted_notes={len(notes)}")
     return notes
 
 

@@ -128,6 +128,8 @@ make smoke-dom
 `smoke-probe` と同じログイン/要素検証を行ったうえで、ページ HTML を
 `logs/artifacts/dom_snapshot_*.html` に保存します。
 
+`backup` 実行（Keep本番取得）でも同様に DOM スナップショットを保存します。
+
 - 取得サイズはデバッグ用途として最大 200,000 文字に制限（大きすぎる出力を防止）
 - summary の `output=` に保存先が出るため、CI や手元で追跡しやすい
 
@@ -147,6 +149,24 @@ docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode ba
 
 ```bash
 docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode backup --notes-file notes.txt
+```
+
+
+### 6) 保存済みDOMの再解析（parse-dom）
+
+```bash
+docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode parse-dom
+```
+
+既定では最新の `logs/artifacts/dom_snapshot_*.html` を入力として読み取り、
+`backups/YYYY-MM-DD/keep_from_dom.json` を出力します。
+
+入力/出力を明示したい場合は次のオプションを使います。
+
+```bash
+docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode parse-dom \
+  --dom-input logs/artifacts/dom_snapshot_2026-01-01_120000.html \
+  --dom-output backups/2026-01-01/keep_from_dom.json
 ```
 
 ## 実行時依存ポリシー
