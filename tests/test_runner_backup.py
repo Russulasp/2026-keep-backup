@@ -106,6 +106,27 @@ class RunnerBackupTests(unittest.TestCase):
         self.assertIn("'メモを選択'", page.last_script)
         self.assertIn("genericLabels", page.last_script)
 
+    def test_extract_note_payloads_body_excludes_same_text_as_title(self) -> None:
+        page = _FakeExtractPage([])
+        _extract_note_payloads(page)
+        self.assertIn("extractDistinctText", page.last_script)
+        self.assertIn("], title);", page.last_script)
+
+    def test_extract_note_payloads_avoids_aria_label_fallback_when_equal_to_title(self) -> None:
+        page = _FakeExtractPage([])
+        _extract_note_payloads(page)
+        self.assertIn(
+            "ariaLabel && (!normalizedTitle || ariaLabel !== normalizedTitle)",
+            page.last_script,
+        )
+
+
+    def test_extract_note_payloads_supports_fixture_title_and_body_selectors(self) -> None:
+        page = _FakeExtractPage([])
+        _extract_note_payloads(page)
+        self.assertIn("'.note .title'", page.last_script)
+        self.assertIn("'.note .body'", page.last_script)
+
     def test_run_backup_with_paths_writes_backup_and_logs(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)

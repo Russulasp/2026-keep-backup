@@ -123,6 +123,12 @@ class RunnerSmokeVerifyTests(unittest.TestCase):
 
             self.assertEqual(notes_count, 8)
 
+    def test_fixture_contains_note_title_and_body_testids(self) -> None:
+        fixture = Path('fixtures/keep_mock.html').read_text(encoding='utf-8')
+        self.assertIn('data-testid="note-title"', fixture)
+        self.assertIn('data-testid="note-content"', fixture)
+
+
 
 if __name__ == "__main__":
     unittest.main()
