@@ -380,12 +380,26 @@ def _extract_note_payloads(page: object) -> list[dict[str, str]]:
             }
           }
 
+          const readText = (element) => (element?.innerText || element?.textContent || '').trim();
+
           const extractText = (root, selectors) => {
             for (const selector of selectors) {
               const found = root.querySelector(selector);
               if (!found) continue;
-              const text = (found.innerText || found.textContent || '').trim();
+              const text = readText(found);
               if (text) return text;
+            }
+            return '';
+          };
+
+          const extractDistinctText = (root, selectors, excludeText) => {
+            for (const selector of selectors) {
+              for (const found of root.querySelectorAll(selector)) {
+                const text = readText(found);
+                if (!text) continue;
+                if (excludeText && text === excludeText) continue;
+                return text;
+              }
             }
             return '';
           };
@@ -400,15 +414,16 @@ def _extract_note_payloads(page: object) -> list[dict[str, str]]:
               '[placeholder="タイトル"]',
               '.IZ65Hb-YPqjbf[role="textbox"]',
               '[data-testid="note-title"]',
+              '.note .title',
             ]);
-            let body = extractText(card, [
+            let body = extractDistinctText(card, [
               '[aria-label="Note"]',
               '[aria-label="メモ"]',
               '.IZ65Hb-vIzZGf-L9AdLc-haAclf',
               '[contenteditable="true"][role="textbox"]',
               '[data-testid="note-content"]',
-              '[role="textbox"]',
-            ]);
+              '.note .body',
+            ], title);
 
             let normalizedTitle = title;
             let normalizedBody = body;
@@ -424,7 +439,7 @@ def _extract_note_payloads(page: object) -> list[dict[str, str]]:
               }
             }
 
-            if (!normalizedBody && ariaLabel) {
+            if (!normalizedBody && ariaLabel && (!normalizedTitle || ariaLabel !== normalizedTitle)) {
               normalizedBody = ariaLabel;
             }
 
