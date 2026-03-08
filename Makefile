@@ -1,4 +1,16 @@
-.PHONY: smoke smoke-login smoke-probe smoke-dom smoke-dom-investigate smoke-fixture backup docker-up docker-down docker-smoke
+.PHONY: help smoke smoke-login smoke-probe smoke-dom smoke-dom-investigate smoke-fixture backup parse-dom docker-up docker-down docker-smoke up down run login probe dom fixture investigate
+
+help:
+	@echo "Primary targets (all delegate to docker compose):"
+	@echo "  make up            # docker compose up -d --build"
+	@echo "  make down          # docker compose down"
+	@echo "  make smoke         # smoke-playwright"
+	@echo "  make login         # smoke-playwright-login"
+	@echo "  make probe         # smoke-playwright-probe"
+	@echo "  make dom           # smoke-playwright-dom"
+	@echo "  make fixture       # smoke-playwright-fixture"
+	@echo "  make run           # backup"
+	@echo "  make parse-dom     # parse from latest DOM snapshot"
 
 smoke:
 	docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright
@@ -65,6 +77,9 @@ smoke-fixture:
 backup:
 	docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode backup
 
+parse-dom:
+	docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode parse-dom
+
 docker-up:
 	docker compose up -d --build
 
@@ -73,3 +88,19 @@ docker-down:
 
 docker-smoke:
 	docker compose run --rm app uv run --no-sync python -m keep_backup.app --mode smoke-playwright
+
+up: docker-up
+
+down: docker-down
+
+run: backup
+
+login: smoke-login
+
+probe: smoke-probe
+
+dom: smoke-dom
+
+fixture: smoke-fixture
+
+investigate: smoke-dom-investigate

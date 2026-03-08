@@ -3,8 +3,8 @@
 Google Keep ノートのバックアップを取るための、コンテナ実行前提の最小構成です。
 
 ## この README の前提
-- 標準の実行入口は **Docker / docker compose** です。
-- `make` は `docker compose ...` の薄いラッパとして使います。
+- 標準の実行主体は **Docker / docker compose** です。
+- `make` は `docker compose ...` の薄いラッパとして使います（運用しやすい別名ターゲットを含む）。
 - `uv run ...` の直実行は一時検証向けで、通常運用の入口にはしません。
 
 ## 推奨コマンド（通常運用）
@@ -17,6 +17,22 @@ make smoke-fixture
 make backup
 make docker-down
 ```
+
+短い別名でも同じ操作が可能です（すべて同じ Docker 実行に委譲）。
+
+```bash
+make up
+make smoke
+make login
+make probe
+make dom
+make fixture
+make run
+make parse-dom
+make down
+```
+
+使えるターゲット一覧は `make help` で確認できます。
 
 ## 初回セットアップ〜実行（迷わない手順）
 
