@@ -100,6 +100,12 @@ class RunnerBackupTests(unittest.TestCase):
         self.assertIn('[aria-label="Select note"]', page.last_script)
         self.assertIn('[aria-label="メモを選択"]', page.last_script)
 
+    def test_extract_note_payloads_discards_generic_select_note_body(self) -> None:
+        page = _FakeExtractPage([])
+        _extract_note_payloads(page)
+        self.assertIn("'メモを選択'", page.last_script)
+        self.assertIn("genericLabels", page.last_script)
+
     def test_run_backup_with_paths_writes_backup_and_logs(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
