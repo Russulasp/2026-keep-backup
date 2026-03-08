@@ -351,7 +351,18 @@ def _extract_note_payloads(page: object) -> list[dict[str, str]]:
     raw_notes = page.evaluate(
         """
         () => {
+          const genericLabels = new Set([
+            'Select note',
+            'メモを選択',
+            'Note',
+            'メモ',
+            'Take a note…',
+            'Take a note...',
+            'メモを入力…',
+          ]);
+
           const cardSelectors = [
+            '.notes-container .IZ65Hb-n0tgWb',
             '[aria-label="Notes"] [role="listitem"]',
             '[aria-label="メモ"] [role="listitem"]',
             '[aria-label="Select note"]',
@@ -362,8 +373,9 @@ def _extract_note_payloads(page: object) -> list[dict[str, str]]:
           const cards = [];
           for (const selector of cardSelectors) {
             for (const element of document.querySelectorAll(selector)) {
-              if (!cards.includes(element)) {
-                cards.push(element);
+              const card = element.closest('.IZ65Hb-n0tgWb, [role="listitem"], article, li') || element;
+              if (!cards.includes(card)) {
+                cards.push(card);
               }
             }
           }
@@ -386,18 +398,17 @@ def _extract_note_payloads(page: object) -> list[dict[str, str]]:
               '[aria-label="タイトル"]',
               '[placeholder="Title"]',
               '[placeholder="タイトル"]',
+              '.IZ65Hb-YPqjbf[role="textbox"]',
               '[data-testid="note-title"]',
             ]);
             let body = extractText(card, [
               '[aria-label="Note"]',
               '[aria-label="メモ"]',
+              '.IZ65Hb-vIzZGf-L9AdLc-haAclf',
+              '[contenteditable="true"][role="textbox"]',
               '[data-testid="note-content"]',
               '[role="textbox"]',
             ]);
-
-            if (!body) {
-              body = (card.innerText || card.textContent || '').trim();
-            }
 
             let normalizedTitle = title;
             let normalizedBody = body;
@@ -415,6 +426,17 @@ def _extract_note_payloads(page: object) -> list[dict[str, str]]:
 
             if (!normalizedBody && ariaLabel) {
               normalizedBody = ariaLabel;
+            }
+
+            if (genericLabels.has(normalizedTitle)) {
+              normalizedTitle = '';
+            }
+            if (genericLabels.has(normalizedBody)) {
+              normalizedBody = '';
+            }
+
+            if (!normalizedTitle && !normalizedBody) {
+              continue;
             }
 
             notes.push({
